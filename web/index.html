@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Medical AI Scribe: open-source SOAP drafts from consultations</title>
+  <meta name="description" content="An open-source scribe that turns a consultation into a SOAP note draft you review against the transcript. Bring your own AI model and key; requests go from your browser straight to the provider.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4f6f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1517" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://medicalaiscribe.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Medical AI Scribe">
+  <meta property="og:description" content="A little less paperwork. A little more room for the patient. Open-source SOAP drafts for clinician review, with your own AI model.">
+  <meta property="og:url" content="https://medicalaiscribe.vercel.app/">
+  <meta property="og:image" content="https://medicalaiscribe.vercel.app/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Medical AI Scribe: a transcript line linked to the SOAP statement it supports.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+  <link rel="manifest" href="/assets/manifest.webmanifest">
+  <link rel="preload" href="/assets/fonts/source-serif-4-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/landing.css">
+  <script src="/assets/js/theme-boot.js"></script>
+  <script type="module" src="/assets/js/landing.js"></script>
+</head>
+<body class="landing">
+  <a class="skip-link" href="#main" data-i18n="common.skip">Skip to content</a>
+
+  <header class="site-header" data-elevated="false">
+    <div class="site-header__inner">
+      <a class="brand" href="/" aria-label="Medical AI Scribe, home">
+        <svg class="brand__mark" viewBox="0 0 28 28" aria-hidden="true"><rect class="mark-sheet" x="3" y="2" width="18" height="24" rx="4"/><path class="mark-line" d="M7.5 9h9M7.5 14h5M7.5 19h7" stroke-width="2" stroke-linecap="round"/><path class="mark-link" d="M14.5 14h6.5" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 3.4"/><circle class="mark-dot" cx="24" cy="14" r="2.6"/></svg>
+        <span>Medical AI Scribe</span>
+      </a>
+
+      <nav class="site-nav" id="site-nav" aria-label="Primary">
+        <ul>
+          <li><a href="#how" data-i18n="landing.nav.how">How it works</a></li>
+          <li><a href="#models" data-i18n="landing.nav.models">Your model</a></li>
+          <li><a href="#privacy" data-i18n="landing.nav.privacy">Privacy</a></li>
+          <li><a href="#self-host" data-i18n="landing.nav.selfHost">Self-host</a></li>
+          <li><a href="#faq" data-i18n="landing.nav.faq">FAQ</a></li>
+        </ul>
+      </nav>
+
+      <div class="site-header__tools">
+        <div class="segmented segmented--lang js-only" role="group" aria-label="Interface language" data-i18n-attr="aria-label:common.uiLanguage">
+          <button type="button" data-set-lang="en" aria-pressed="true" lang="en">EN</button>
+          <button type="button" data-set-lang="id" aria-pressed="false" lang="id">ID</button>
+        </div>
+        <button class="icon-btn js-only" type="button" data-action="toggle-theme" aria-label="Switch to dark theme" data-i18n-attr="aria-label:common.themeToDark">
+          <svg class="icon icon--theme-light" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-moon"/></svg>
+          <svg class="icon icon--theme-dark" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-sun"/></svg>
+        </button>
+        <a class="icon-btn site-header__gh" href="https://github.com/arthamegayasa/medical-ai-scribe" aria-label="Source code on GitHub" data-i18n-attr="aria-label:landing.githubLabel">
+          <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-github"/></svg>
+        </a>
+        <a class="btn btn--ink site-header__cta" href="/app/" data-i18n="landing.openApp">Open the app</a>
+        <button class="icon-btn site-nav-toggle js-only" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu" data-i18n-attr="aria-label:landing.menu">
+          <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-menu"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="page-wrap">
+        <h1 id="hero-title" class="hero__title">
+          <span class="hero__line" data-i18n="landing.hero.title1">A little less paperwork.</span>
+          <span class="hero__line" data-i18n="landing.hero.title2">A little more room for the patient.</span>
+        </h1>
+        <div class="hero__intro">
+          <p class="hero__lead" data-i18n="landing.hero.lead">Medical AI Scribe turns a consultation into a SOAP note draft, and shows you which part of the conversation supports each line. You review it, correct it, and decide what goes in the record.</p>
+          <div class="hero__actions">
+            <a class="btn btn--primary btn--lg" href="/app/?example=1" data-i18n="landing.hero.ctaExample">Try the fictional example</a>
+            <a class="btn btn--lg" href="https://github.com/arthamegayasa/medical-ai-scribe">
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-github"/></svg>
+              <span data-i18n="landing.hero.ctaSource">View the source</span>
+            </a>
+            <p class="hero__fine" data-i18n="landing.hero.fine">Free and open source under the MIT License. No account. Bring your own AI key, or none for the example.</p>
+          </div>
+        </div>
+
+        <!-- Specimen: the product idea in one interactive object. Content is fictional. -->
+        <figure class="specimen" id="specimen" aria-labelledby="specimen-caption">
+          <div class="specimen__bar">
+            <span class="specimen__tag">
+              <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-info"/></svg>
+              <span data-i18n="landing.specimen.tag">Fictional consultation, written for this demo</span>
+            </span>
+            <span class="specimen__draft" data-i18n="common.draftLabel">Draft for clinician review</span>
+          </div>
+          <div class="specimen__grid">
+            <section class="specimen__col specimen__transcript" aria-labelledby="spec-t-title">
+              <h2 class="specimen__heading" id="spec-t-title" data-i18n="landing.specimen.transcript">Transcript</h2>
+              <ol class="spec-turns">
+                <li class="spec-turn" id="spec-t2" data-speaker="patient"><span class="spec-turn__who" data-i18n="common.patient">Patient</span><p data-i18n="landing.specimen.t2">For about six weeks my right hand goes numb and tingly at night. Mostly the thumb and the next two fingers.</p></li>
+                <li class="spec-turn" id="spec-t3" data-speaker="patient"><span class="spec-turn__who" data-i18n="common.patient">Patient</span><p data-i18n="landing.specimen.t3">It is worse after a long day of typing. Shaking the hand helps.</p></li>
+                <li class="spec-turn" id="spec-t4" data-speaker="doctor"><span class="spec-turn__who" data-i18n="common.doctor">Doctor</span><p data-i18n="landing.specimen.t4">Any neck pain, or dropping things?</p></li>
+                <li class="spec-turn" id="spec-t5" data-speaker="patient"><span class="spec-turn__who" data-i18n="common.patient">Patient</span><p data-i18n="landing.specimen.t5">No neck pain. I have not dropped anything.</p></li>
+                <li class="spec-turn" id="spec-t6" data-speaker="doctor"><span class="spec-turn__who" data-i18n="common.doctor">Doctor</span><p data-i18n="landing.specimen.t6">Tapping over the wrist brings on the tingling, and so does holding the wrist flexed for under a minute. Grip strength is normal.</p></li>
+                <li class="spec-turn" id="spec-t7" data-speaker="doctor"><span class="spec-turn__who" data-i18n="common.doctor">Doctor</span><p data-i18n="landing.specimen.t7">This looks most like carpal tunnel syndrome. Let us try a night splint and arrange a nerve conduction study.</p></li>
+              </ol>
+            </section>
+
+            <section class="specimen__col specimen__note" aria-labelledby="spec-n-title">
+              <h2 class="specimen__heading" id="spec-n-title" data-i18n="landing.specimen.note">SOAP draft</h2>
+              <div class="spec-section">
+                <h3 class="spec-section__name" data-i18n="soap.subjective">Subjective</h3>
+                <ul class="spec-statements">
+                  <li class="spec-st" data-evidence="spec-t2"><span data-i18n="landing.specimen.s1">Six weeks of night-time numbness and tingling in the right thumb, index and middle fingers.</span> <button class="ev-chip" type="button" data-evidence="spec-t2" aria-label="Show source in transcript" data-i18n-attr="aria-label:note.showSource"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg><span aria-hidden="true">2</span></button></li>
+                  <li class="spec-st" data-evidence="spec-t3"><span data-i18n="landing.specimen.s2">Worse after prolonged typing; eased by shaking the hand.</span> <button class="ev-chip" type="button" data-evidence="spec-t3" aria-label="Show source in transcript" data-i18n-attr="aria-label:note.showSource"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg><span aria-hidden="true">3</span></button></li>
+                  <li class="spec-st" data-evidence="spec-t5"><span data-i18n="landing.specimen.s3">No neck pain or dropped objects.</span> <button class="ev-chip" type="button" data-evidence="spec-t5" aria-label="Show source in transcript" data-i18n-attr="aria-label:note.showSource"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg><span aria-hidden="true">5</span></button></li>
+                  <li class="spec-st spec-st--unverified" data-evidence=""><span data-i18n="landing.specimen.s4">No history of diabetes.</span> <span class="ev-chip ev-chip--unverified" tabindex="0" role="note" aria-label="Unverified: no supporting line in the transcript" data-i18n-attr="aria-label:note.unverifiedLong"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-unverified"/></svg><span aria-hidden="true" data-i18n="note.unverified">Unverified</span></span></li>
+                </ul>
+              </div>
+              <div class="spec-section">
+                <h3 class="spec-section__name" data-i18n="soap.objective">Objective</h3>
+                <ul class="spec-statements">
+                  <li class="spec-st" data-evidence="spec-t6"><span data-i18n="landing.specimen.o1">Tinel's sign and Phalen's test reproduce symptoms at the right wrist. Grip strength normal.</span> <button class="ev-chip" type="button" data-evidence="spec-t6" aria-label="Show source in transcript" data-i18n-attr="aria-label:note.showSource"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg><span aria-hidden="true">6</span></button></li>
+                </ul>
+              </div>
+              <div class="spec-section">
+                <h3 class="spec-section__name" data-i18n="landing.specimen.ap">Assessment and plan</h3>
+                <ul class="spec-statements">
+                  <li class="spec-st" data-evidence="spec-t7"><span data-i18n="landing.specimen.a1">Clinician's impression: right carpal tunnel syndrome. Night splint; nerve conduction study to be arranged.</span> <button class="ev-chip" type="button" data-evidence="spec-t7" aria-label="Show source in transcript" data-i18n-attr="aria-label:note.showSource"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg><span aria-hidden="true">7</span></button></li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <figcaption class="specimen__caption" id="specimen-caption" data-i18n="landing.specimen.caption">Point at a line in the draft, or tab to its link, to see the words that support it. The diabetes line has no support in the transcript, so it is marked unverified for you to check or remove.</figcaption>
+          <p class="sr-only" aria-live="polite" id="specimen-live"></p>
+        </figure>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="page-wrap">
+        <header class="section__head">
+          <h2 class="section__title" id="how-title" data-i18n="landing.how.title">Four steps, in the order you already work</h2>
+          <p class="section__lead" data-i18n="landing.how.lead">Each step stays editable. Nothing moves forward until you choose to.</p>
+        </header>
+        <ol class="steps">
+          <li class="step">
+            <span class="step__num" aria-hidden="true">1</span>
+            <svg class="icon icon--lg step__icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-mic"/></svg>
+            <h3 class="step__title" data-i18n="landing.how.s1.title">Capture</h3>
+            <p data-i18n="landing.how.s1.text">Record the consultation with pause and resume, upload an audio file, or paste a transcript you already have.</p>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">2</span>
+            <svg class="icon icon--lg step__icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-text-cursor"/></svg>
+            <h3 class="step__title" data-i18n="landing.how.s2.title">Check the transcript</h3>
+            <p data-i18n="landing.how.s2.text">Fix names, drugs, doses and numbers before anything is drafted. Optional Doctor and Patient labels, and a vocabulary list for terms the model tends to miss.</p>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">3</span>
+            <svg class="icon icon--lg step__icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-doc"/></svg>
+            <h3 class="step__title" data-i18n="landing.how.s3.title">Review the draft</h3>
+            <p data-i18n="landing.how.s3.text">Chief complaint, Subjective, Objective, Assessment and Plan. Each statement links to its source, unsupported ones are marked, and points to confirm are listed.</p>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">4</span>
+            <svg class="icon icon--lg step__icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-download"/></svg>
+            <h3 class="step__title" data-i18n="landing.how.s4.title">Export</h3>
+            <p data-i18n="landing.how.s4.text">Copy into your record system, or save as Markdown, plain text, Word or PDF. The draft label travels with the file.</p>
+          </li>
+        </ol>
+        <ul class="facts" aria-label="Also included" data-i18n-attr="aria-label:landing.how.alsoLabel">
+          <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-template"/></svg><span data-i18n="landing.how.f1">Note templates by specialty</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg><span data-i18n="landing.how.f2">Regenerate one section at a time</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-languages"/></svg><span data-i18n="landing.how.f3">Notes in English or Bahasa Indonesia</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-history"/></svg><span data-i18n="landing.how.f4">Session history only if you turn it on</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Bring your own model -->
+    <section class="section section--sunk" id="models" aria-labelledby="models-title">
+      <div class="page-wrap models">
+        <header class="section__head">
+          <h2 class="section__title" id="models-title" data-i18n="landing.models.title">Bring your own model</h2>
+          <p class="section__lead" data-i18n="landing.models.lead">Connect the AI provider you already use, or a model running on your own machine. Choose one model to transcribe and another to write the note; each can come from a different provider.</p>
+        </header>
+        <div class="slots" aria-hidden="true">
+          <div class="slot">
+            <span class="slot__label" data-i18n="landing.models.slotTranscribe">Transcription model</span>
+            <span class="slot__value">whisper-large-v3</span>
+            <span class="slot__via">Groq</span>
+          </div>
+          <svg class="icon slot__join" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-arrow-right"/></svg>
+          <div class="slot">
+            <span class="slot__label" data-i18n="landing.models.slotNote">Note model</span>
+            <span class="slot__value">llama3.1:8b</span>
+            <span class="slot__via" data-i18n="landing.models.slotLocal">Ollama, on this computer</span>
+          </div>
+        </div>
+        <p class="slots__caption" data-i18n="landing.models.slotCaption">One possible pairing, shown as an illustration. Use whichever models suit your setting.</p>
+        <ul class="providers">
+          <li>OpenAI</li>
+          <li>Anthropic</li>
+          <li>Google Gemini</li>
+          <li>OpenRouter</li>
+          <li>Groq</li>
+          <li>Mistral</li>
+          <li><span>Deepgram</span> <span class="providers__note" data-i18n="landing.models.audioOnly">transcription</span></li>
+          <li><span>ElevenLabs</span> <span class="providers__note" data-i18n="landing.models.audioOnly">transcription</span></li>
+          <li><span>Ollama</span> <span class="providers__note" data-i18n="landing.models.local">local</span></li>
+          <li><span>LM Studio</span> <span class="providers__note" data-i18n="landing.models.local">local</span></li>
+          <li data-i18n="landing.models.compatible">Any OpenAI-compatible endpoint</li>
+        </ul>
+        <p class="fine" data-i18n="landing.models.trademark">Provider names belong to their owners and are listed only to describe compatibility. Model availability, pricing and terms are set by each provider.</p>
+      </div>
+    </section>
+
+    <!-- Privacy architecture -->
+    <section class="section" id="privacy" aria-labelledby="privacy-title">
+      <div class="page-wrap">
+        <header class="section__head">
+          <h2 class="section__title" id="privacy-title" data-i18n="landing.privacy.title">Where your data goes</h2>
+          <p class="section__lead" data-i18n="landing.privacy.lead">The app runs in your browser. Your key, audio, transcript and notes go from your browser straight to the provider you chose. The site that serves the app only delivers its files.</p>
+        </header>
+
+        <figure class="flow" aria-labelledby="flow-caption">
+          <div class="flow__node flow__node--host">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-server"/></svg>
+            <div>
+              <p class="flow__name" data-i18n="landing.privacy.host">Website host</p>
+              <p class="flow__desc" data-i18n="landing.privacy.hostDesc">Delivers the app's HTML, CSS and JavaScript.</p>
+            </div>
+          </div>
+          <div class="flow__link flow__link--down">
+            <span class="flow__label" data-i18n="landing.privacy.filesOnly">App files only</span>
+          </div>
+          <div class="flow__node flow__node--browser">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-browser"/></svg>
+            <div>
+              <p class="flow__name" data-i18n="landing.privacy.browser">Your browser</p>
+              <ul class="flow__items">
+                <li data-i18n="landing.privacy.b1">Your API key</li>
+                <li data-i18n="landing.privacy.b2">Audio and transcript</li>
+                <li data-i18n="landing.privacy.b3">Draft notes, and history if you turn it on</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flow__link flow__link--across">
+            <span class="flow__label" data-i18n="landing.privacy.direct">Direct, encrypted request with your key</span>
+          </div>
+          <div class="flow__node flow__node--provider">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-cpu"/></svg>
+            <div>
+              <p class="flow__name" data-i18n="landing.privacy.provider">The AI provider you chose</p>
+              <p class="flow__desc" data-i18n="landing.privacy.providerDesc">Transcribes the audio and drafts the note, under its own terms. A local model keeps this step on your machine.</p>
+            </div>
+          </div>
+          <div class="flow__never">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-lock"/></svg>
+            <p data-i18n="landing.privacy.never">The website host never receives your key, your audio or your notes.</p>
+          </div>
+          <figcaption class="sr-only" id="flow-caption" data-i18n="landing.privacy.caption">Diagram: the website host sends app files to your browser. Your browser sends audio and text, with your key, directly to the AI provider.</figcaption>
+        </figure>
+
+        <div class="privacy-points">
+          <div class="privacy-point">
+            <h3 data-i18n="landing.privacy.p1.title">Keys stay where you put them</h3>
+            <p data-i18n="landing.privacy.p1.text">A key is kept for this tab only, unless you choose to remember it on this device. You can remove it at any time.</p>
+          </div>
+          <div class="privacy-point">
+            <h3 data-i18n="landing.privacy.p2.title">History is off until you turn it on</h3>
+            <p data-i18n="landing.privacy.p2.text">If you enable it, sessions are stored only on this device, can auto-delete after a period you choose, and can be erased in one step.</p>
+          </div>
+          <div class="privacy-point">
+            <h3 data-i18n="landing.privacy.p3.title">The provider still sees the content</h3>
+            <p data-i18n="landing.privacy.p3.text">Whatever you send is processed by the provider you chose. Check its data terms, and use de-identified material unless your agreements and local rules allow otherwise.</p>
+          </div>
+          <div class="privacy-point">
+            <h3 data-i18n="landing.privacy.p4.title">Running it for a team</h3>
+            <p data-i18n="landing.privacy.p4.text">Self-hosters can keep provider keys on their own server behind a workspace access token. In that mode, audio and text pass through that server on the way to the provider.</p>
+          </div>
+        </div>
+        <p class="fine" data-i18n="landing.privacy.noClaim">This project does not claim compliance with any healthcare privacy regulation. Whether and how you may use it with patient data depends on your provider agreements, your institution and your jurisdiction.</p>
+      </div>
+    </section>
+
+    <!-- Always a draft -->
+    <section class="section section--ink" id="draft" aria-labelledby="draft-title">
+      <div class="page-wrap draft-grid">
+        <header class="section__head">
+          <h2 class="section__title" id="draft-title" data-i18n="landing.draft.title">Written to be checked</h2>
+          <p class="section__lead" data-i18n="landing.draft.lead">A language model can omit, misattribute or invent details. The workspace is built around catching that before the note leaves your hands.</p>
+        </header>
+        <dl class="legend">
+          <div class="legend__row">
+            <dt><span class="ev-chip ev-chip--static"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg>4</span><span data-i18n="landing.draft.linkedT">Linked</span></dt>
+            <dd data-i18n="landing.draft.linkedD">The statement points to the transcript lines it came from. Select the link to see them highlighted.</dd>
+          </div>
+          <div class="legend__row">
+            <dt><span class="ev-chip ev-chip--unverified ev-chip--static"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-unverified"/></svg></span><span data-i18n="note.unverified">Unverified</span></dt>
+            <dd data-i18n="landing.draft.unverifiedD">No supporting line was found. Confirm it from your own knowledge of the encounter, or delete it.</dd>
+          </div>
+          <div class="legend__row">
+            <dt><span class="ev-chip ev-chip--flag ev-chip--static"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-flag"/></svg></span><span data-i18n="landing.draft.reviewT">Needs review</span></dt>
+            <dd data-i18n="landing.draft.reviewD">Gaps and ambiguities collected in one list: a dose without units, a laterality never stated, a plan with no follow-up.</dd>
+          </div>
+          <div class="legend__row">
+            <dt><span class="ev-chip ev-chip--static"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-alert"/></svg></span><span data-i18n="landing.draft.staleT">Transcript changed</span></dt>
+            <dd data-i18n="landing.draft.staleD">Edit the transcript after drafting and the note tells you it may be out of date, including in exports.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- Open source / self-host -->
+    <section class="section" id="self-host" aria-labelledby="self-title">
+      <div class="page-wrap selfhost">
+        <header class="section__head">
+          <h2 class="section__title" id="self-title" data-i18n="landing.self.title">Open source, and yours to run</h2>
+          <p class="section__lead" data-i18n="landing.self.lead">The whole app is plain HTML, CSS and JavaScript under the MIT License. Read every line, change what you need, and host it wherever you are allowed to.</p>
+        </header>
+        <div class="selfhost__grid">
+          <div class="terminal" role="group" aria-label="Run it locally" data-i18n-attr="aria-label:landing.self.terminalLabel">
+            <div class="terminal__bar"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-terminal"/></svg><span data-i18n="landing.self.terminalLabel">Run it locally</span></div>
+<pre class="terminal__body"><code><span class="terminal__prompt" aria-hidden="true">$ </span>git clone https://github.com/arthamegayasa/medical-ai-scribe.git
+<span class="terminal__prompt" aria-hidden="true">$ </span>cd medical-ai-scribe
+<span class="terminal__prompt" aria-hidden="true">$ </span>npm ci
+<span class="terminal__prompt" aria-hidden="true">$ </span>npm run dev</code></pre>
+          </div>
+          <ul class="checklist">
+            <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-check"/></svg><span data-i18n="landing.self.c1">No build step and no runtime dependencies</span></li>
+            <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-check"/></svg><span data-i18n="landing.self.c2">Deploy to Vercel or any static host</span></li>
+            <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-check"/></svg><span data-i18n="landing.self.c3">Optional server mode with keys held on your server and a workspace access token</span></li>
+            <li><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-check"/></svg><span data-i18n="landing.self.c4">Works with local models through Ollama or LM Studio</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section--sunk" id="faq" aria-labelledby="faq-title">
+      <div class="page-wrap faq">
+        <header class="section__head">
+          <h2 class="section__title" id="faq-title" data-i18n="landing.faq.title">Questions</h2>
+        </header>
+        <div class="faq__list">
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q1">What does it cost?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a1">The software is free. You pay your AI provider directly for what you use, at their prices. A local model costs nothing beyond your own hardware. The fictional example needs no key at all.</p></div>
+          </details>
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q2">Does this website store my patients' information?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a2">No. In the default mode the host only serves the app's files. Audio, transcripts and notes stay in your browser and go directly to your chosen provider. Session history is off by default; if you turn it on, it is kept only on your device.</p></div>
+          </details>
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q3">Is it approved or compliant for clinical use?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a3">It makes no such claim. It is open-source software that produces documentation drafts. Whether you can use it with real patient data depends on your provider agreements, your institution's policies and the law where you practise.</p></div>
+          </details>
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q4">How accurate are the notes?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a4">We publish no accuracy figures. Quality depends on the model, the audio, the transcript and the encounter. That is why every statement shows its source, unsupported statements are marked, and the note is always labelled a draft.</p></div>
+          </details>
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q5">Does it make diagnoses?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a5">No. The model is instructed to record only what was said, including the assessment and plan the clinician stated. It should not add its own conclusions; if it does, the statement will have no source and be marked unverified.</p></div>
+          </details>
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q6">Can it run entirely on my own computer?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a6">Yes, if both models are local. Run the app locally and connect Ollama or LM Studio for the note, and a local OpenAI-compatible transcription server for audio. A local note model alone does not make transcription local.</p></div>
+          </details>
+          <details class="disclosure">
+            <summary><span data-i18n="landing.faq.q7">Which languages does it support?</span><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg></summary>
+            <div class="disclosure__body"><p data-i18n="landing.faq.a7">The interface is in English and Bahasa Indonesia. Notes can be written in either, independent of the language spoken in the consultation. Transcription languages depend on the model you choose.</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing call to action -->
+    <section class="closing" aria-labelledby="closing-title">
+      <div class="page-wrap closing__inner">
+        <h2 class="closing__title" id="closing-title" data-i18n="landing.closing.title">See the whole flow in two minutes.</h2>
+        <p class="closing__text" data-i18n="landing.closing.text">The fictional example runs without a key, so you can judge the workflow before connecting anything.</p>
+        <div class="closing__actions">
+          <a class="btn btn--primary btn--lg" href="/app/?example=1" data-i18n="landing.hero.ctaExample">Try the fictional example</a>
+          <a class="btn btn--lg" href="/app/" data-i18n="landing.closing.ctaApp">Open an empty workspace</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="page-wrap site-footer__inner">
+      <div class="site-footer__brand">
+        <a class="brand" href="/">
+          <svg class="brand__mark" viewBox="0 0 28 28" aria-hidden="true"><rect class="mark-sheet" x="3" y="2" width="18" height="24" rx="4"/><path class="mark-line" d="M7.5 9h9M7.5 14h5M7.5 19h7" stroke-width="2" stroke-linecap="round"/><path class="mark-link" d="M14.5 14h6.5" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 3.4"/><circle class="mark-dot" cx="24" cy="14" r="2.6"/></svg>
+          <span>Medical AI Scribe</span>
+        </a>
+        <p class="site-footer__note" data-i18n="landing.footer.note">Drafts documentation. Does not diagnose or treat. Every note needs review by a qualified clinician.</p>
+      </div>
+      <nav aria-label="Footer" data-i18n-attr="aria-label:landing.footer.navLabel">
+        <ul class="site-footer__links">
+          <li><a href="https://github.com/arthamegayasa/medical-ai-scribe" data-i18n="landing.footer.source">Source code</a></li>
+          <li><a href="https://github.com/arthamegayasa/medical-ai-scribe/issues" data-i18n="landing.footer.issues">Report an issue</a></li>
+          <li><a href="https://github.com/arthamegayasa/medical-ai-scribe/blob/main/LICENSE" data-i18n="landing.footer.license">MIT License</a></li>
+          <li><a href="/app/" data-i18n="landing.openApp">Open the app</a></li>
+        </ul>
+      </nav>
+      <p class="site-footer__credit"><span data-i18n="landing.footer.credit">Created by</span> <a href="https://github.com/arthamegayasa">Artha Megayasa</a></p>
+    </div>
+  </footer>
+</body>
+</html>

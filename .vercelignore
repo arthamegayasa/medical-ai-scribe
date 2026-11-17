@@ -3,9 +3,11 @@
 .env.*
 !.env.example
 node_modules
+public
 tests
 docs
 README.md
+web/**/*.md
 dev-server.js
 .github
 *.log

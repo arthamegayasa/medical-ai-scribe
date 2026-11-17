@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="og-title og-desc">
+  <title id="og-title">Medical AI Scribe</title>
+  <desc id="og-desc">A little less paperwork. A little more room for the patient. A transcript line linked to the SOAP statement it supports. Open source; drafts for clinician review.</desc>
+  <rect width="1200" height="630" fill="#f4f6f5"/>
+  <!-- brand -->
+  <g transform="translate(72 64)">
+    <rect x="4" y="2.5" width="20" height="27" rx="4.5" fill="#15242b"/>
+    <path d="M9 10h10M9 16h5.5M9 22h8" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path d="M17 16h7.5" stroke="#0b6e5f" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="0.1 3.8" fill="none"/>
+    <circle cx="27.5" cy="16" r="3" fill="#0b6e5f"/>
+    <text x="46" y="23" font-family="'Atkinson Hyperlegible Next', 'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#15242b">Medical AI Scribe</text>
+  </g>
+  <!-- headline -->
+  <g font-family="'Source Serif 4', Georgia, 'Times New Roman', serif" font-size="64" font-weight="500" fill="#15242b" letter-spacing="-1.4">
+    <text x="68" y="206">A little less paperwork.</text>
+    <text x="68" y="282">A little more room for the patient.</text>
+  </g>
+  <!-- specimen -->
+  <g transform="translate(72 352)">
+    <rect width="1056" height="190" rx="16" fill="#ffffff" stroke="#dbe2df"/>
+    <path d="M488 0v190" stroke="#dbe2df"/>
+    <rect x="0.5" y="0.5" width="487.5" height="189" rx="15.5" fill="#f8faf9"/>
+    <path d="M488 0.5v189" stroke="#dbe2df"/>
+    <g font-family="'Atkinson Hyperlegible Next', 'Segoe UI', Arial, sans-serif">
+      <text x="32" y="44" font-size="15" font-weight="700" fill="#4b5b61">Transcript</text>
+      <rect x="20" y="64" width="448" height="92" rx="8" fill="#e2f1ec"/>
+      <rect x="20" y="64" width="4" height="92" rx="2" fill="#0b6e5f"/>
+      <text x="40" y="94" font-size="15" font-weight="700" fill="#4b5b61">Patient</text>
+      <text x="40" y="122" font-size="20" fill="#15242b">For about six weeks my right hand goes</text>
+      <text x="40" y="146" font-size="20" fill="#15242b">numb and tingly at night.</text>
+      <text x="520" y="44" font-size="15" font-weight="700" fill="#0b6e5f">Subjective</text>
+      <rect x="800" y="24" width="224" height="28" rx="5" fill="#fbefe0"/>
+      <text x="912" y="44" font-size="15" font-weight="700" fill="#934a05" text-anchor="middle">Draft for clinician review</text>
+    </g>
+    <rect x="510" y="70" width="526" height="80" rx="8" fill="#e2f1ec"/>
+    <g font-family="'Source Serif 4', Georgia, 'Times New Roman', serif" font-size="24" fill="#15242b">
+      <text x="526" y="104">Six weeks of night-time numbness and</text>
+      <text x="526" y="136">tingling in the right hand.</text>
+    </g>
+    <g transform="translate(818 116)">
+      <rect width="44" height="26" rx="13" fill="#0b6e5f"/>
+            <text x="27" y="18" font-family="'Atkinson Hyperlegible Next', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+      <path d="M9.5 14.2a2.4 2.4 0 0 0 3.4 0l1.8-1.8a2.4 2.4 0 0 0-3.4-3.4l-.6.6M14 11.8a2.4 2.4 0 0 0-3.4 0" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </g>
+    <path d="M462 110 C500 110 486 110 514 110" stroke="#0b6e5f" stroke-width="2" stroke-dasharray="3 4" fill="none"/>
+    <circle cx="462" cy="110" r="4" fill="#0b6e5f"/>
+    <circle cx="514" cy="110" r="4" fill="#0b6e5f"/>
+  </g>
+  <text x="72" y="590" font-family="'Atkinson Hyperlegible Next', 'Segoe UI', Arial, sans-serif" font-size="20" fill="#4b5b61">Open source under MIT. Your model, your key, in your browser. Every note is a draft for clinician review.</text>
+</svg>

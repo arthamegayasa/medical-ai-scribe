@@ -1,10 +1,121 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="450" viewBox="0 0 1440 450" role="img" aria-labelledby="title desc">
-<title id="title">How Medical AI Scribe works</title><desc id="desc">Audio optionally goes to a transcription provider. The editable transcript is sent through a server-side adapter to the selected language model. A clinician edits and exports the returned SOAP draft. Keys remain on the server; the app has no patient database.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0l10 5-10 5" fill="#629a9e"/></marker></defs>
-<rect width="1440" height="450" rx="18" fill="#f0f6f7"/><g font-family="Segoe UI,Arial,sans-serif"><text x="52" y="56" fill="#183640" font-size="24" font-weight="650">One focused workflow.</text><text x="52" y="85" fill="#617f88" font-size="14">Separate transcription from note generation. Review the source before the draft.</text>
-<g fill="#fff" stroke="#d5e3e6"><rect x="52" y="151" width="232" height="172" rx="12"/><rect x="339" y="151" width="232" height="172" rx="12"/><rect x="626" y="151" width="232" height="172" rx="12"/><rect x="913" y="151" width="232" height="172" rx="12"/><rect x="1200" y="151" width="188" height="172" rx="12"/></g>
-<g fill="#328e85" font-size="11" font-weight="650" letter-spacing="2"><text x="73" y="182">01 / CAPTURE</text><text x="360" y="182">02 / VERIFY</text><text x="647" y="182">03 / STRUCTURE</text><text x="934" y="182">04 / REVIEW</text><text x="1221" y="182">05 / EXPORT</text></g>
-<g fill="#183640" font-size="19" font-weight="600"><text x="73" y="220">Audio or text</text><text x="360" y="220">Editable transcript</text><text x="647" y="220">Your selected AI</text><text x="934" y="220">SOAP draft</text><text x="1221" y="220">Your note</text></g>
-<g fill="#69858b" font-size="13"><text x="73" y="254">Paste text, record, or upload</text><text x="73" y="278">Optional transcription API</text><text x="360" y="254">Check names and numbers</text><text x="360" y="278">Then choose a model</text><text x="647" y="254">Server-side provider adapter</text><text x="647" y="278">English or Indonesian</text><text x="934" y="254">Correct and verify every field</text><text x="934" y="278">Clinician judgment stays central</text><text x="1221" y="254">Copy or Markdown</text><text x="1221" y="278">Always labeled draft</text></g>
-<g stroke="#629a9e" stroke-width="2" marker-end="url(#arrow)"><path d="M293 237h34M580 237h34M867 237h34M1154 237h34"/></g>
-<text x="52" y="382" fill="#56767e" font-size="13">Keys stay on the server. Live requests reach your configured provider. No patient database or automatic browser storage.</text><text x="52" y="410" fill="#839da3" font-size="12">A documentation tool for evaluation and clinician review; not autonomous diagnosis, prescribing, or an EHR.</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="470" viewBox="0 0 1280 470" role="img" aria-labelledby="wf-title wf-desc">
+  <title id="wf-title">The Medical AI Scribe workflow</title>
+  <desc id="wf-desc">Four steps: capture by recording, upload or paste; check and correct the transcript; review a SOAP draft whose statements carry transcript quotes that are verified without AI; export to Markdown, text, Word or print. Every statement ends up grounded, unverified or with a number to check.</desc>
+  <defs>
+    <marker id="wf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" class="arrowhead"/>
+    </marker>
+  </defs>
+  <style>
+    .bg { fill: #f4f6f5; stroke: #dbe2df; }
+    .card { fill: #ffffff; stroke: #c3ccc8; }
+    .card-accent { fill: #ffffff; stroke: #0b6e5f; }
+    .ink { fill: #15242b; }
+    .ink2 { fill: #4b5b61; }
+    .ink3 { fill: #5c6c71; }
+    .accent { fill: #0b6e5f; }
+    .on-accent { fill: #ffffff; }
+    .accent-stroke { stroke: #0b6e5f; }
+    .accent-line { stroke: #8cc7b8; }
+    .chip { fill: #e2f1ec; }
+    .review { fill: #934a05; }
+    .review-stroke { stroke: #934a05; }
+    .review-soft { fill: #fbefe0; }
+    .review-line { stroke: #e2b27a; }
+    .arrowhead { fill: #5c6c71; }
+    .connector { stroke: #5c6c71; }
+    .serif { font-family: "Source Serif 4", "Iowan Old Style", Charter, Georgia, "Times New Roman", serif; }
+    .sans { font-family: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0e1517; stroke: #263538; }
+      .card { fill: #152023; stroke: #34474a; }
+      .card-accent { fill: #152023; stroke: #5cc3ab; }
+      .ink { fill: #e3eae8; }
+      .ink2 { fill: #a3b3b2; }
+      .ink3 { fill: #8a9b9b; }
+      .accent { fill: #5cc3ab; }
+      .on-accent { fill: #082420; }
+      .accent-stroke { stroke: #5cc3ab; }
+      .accent-line { stroke: #2f7566; }
+      .chip { fill: #15332d; }
+      .review { fill: #eaa65c; }
+      .review-stroke { stroke: #eaa65c; }
+      .review-soft { fill: #33240f; }
+      .review-line { stroke: #7a5226; }
+      .arrowhead { fill: #8a9b9b; }
+      .connector { stroke: #8a9b9b; }
+    }
+  </style>
+
+  <rect class="bg" x="0.5" y="0.5" width="1279" height="469" rx="20"/>
+
+  <!-- Step 1 -->
+  <rect class="card" x="48" y="48" width="262" height="236" rx="14"/>
+  <circle class="accent" cx="82" cy="84" r="16"/>
+  <text class="sans on-accent" x="82" y="90" font-size="16" font-weight="700" text-anchor="middle">1</text>
+  <text class="serif ink" x="110" y="91" font-size="22" font-weight="600">Capture</text>
+  <text class="sans ink2" x="70" y="132" font-size="14">Record with pause and resume,</text>
+  <text class="sans ink2" x="70" y="154" font-size="14">upload an audio file, or paste</text>
+  <text class="sans ink2" x="70" y="176" font-size="14">a transcript you already have.</text>
+  <text class="sans ink3" x="70" y="222" font-size="12.5">Files over the upload limit are cut</text>
+  <text class="sans ink3" x="70" y="242" font-size="12.5">at quiet points into 16 kHz WAV.</text>
+
+  <!-- Step 2 -->
+  <rect class="card" x="354" y="48" width="262" height="236" rx="14"/>
+  <circle class="accent" cx="388" cy="84" r="16"/>
+  <text class="sans on-accent" x="388" y="90" font-size="16" font-weight="700" text-anchor="middle">2</text>
+  <text class="serif ink" x="416" y="91" font-size="22" font-weight="600">Transcript</text>
+  <text class="sans ink2" x="376" y="132" font-size="14">Fix names, drugs, doses and</text>
+  <text class="sans ink2" x="376" y="154" font-size="14">numbers before anything is</text>
+  <text class="sans ink2" x="376" y="176" font-size="14">drafted.</text>
+  <text class="sans ink3" x="376" y="222" font-size="12.5">Optional Doctor / Patient labels;</text>
+  <text class="sans ink3" x="376" y="242" font-size="12.5">vocabulary hints for rare terms.</text>
+
+  <!-- Step 3 -->
+  <rect class="card-accent" x="660" y="48" width="262" height="236" rx="14" stroke-width="2"/>
+  <circle class="accent" cx="694" cy="84" r="16"/>
+  <text class="sans on-accent" x="694" y="90" font-size="16" font-weight="700" text-anchor="middle">3</text>
+  <text class="serif ink" x="722" y="91" font-size="22" font-weight="600">Draft</text>
+  <text class="sans ink2" x="682" y="132" font-size="14">SOAP statements, each with</text>
+  <text class="sans ink2" x="682" y="154" font-size="14">verbatim quotes from the</text>
+  <text class="sans ink2" x="682" y="176" font-size="14">transcript as evidence.</text>
+  <text class="sans ink3" x="682" y="222" font-size="12.5">Specialty template, note language,</text>
+  <text class="sans ink3" x="682" y="242" font-size="12.5">rewrite one section at a time.</text>
+
+  <!-- Step 4 -->
+  <rect class="card" x="966" y="48" width="262" height="236" rx="14"/>
+  <circle class="accent" cx="1000" cy="84" r="16"/>
+  <text class="sans on-accent" x="1000" y="90" font-size="16" font-weight="700" text-anchor="middle">4</text>
+  <text class="serif ink" x="1028" y="91" font-size="22" font-weight="600">Export</text>
+  <text class="sans ink2" x="988" y="132" font-size="14">Copy, Markdown, plain text,</text>
+  <text class="sans ink2" x="988" y="154" font-size="14">Word (.docx), or print and</text>
+  <text class="sans ink2" x="988" y="176" font-size="14">save as PDF.</text>
+  <text class="sans ink3" x="988" y="222" font-size="12.5">The draft label and markers</text>
+  <text class="sans ink3" x="988" y="242" font-size="12.5">travel with every file.</text>
+
+  <!-- Connectors -->
+  <line class="connector" x1="312" y1="166" x2="350" y2="166" stroke-width="2" marker-end="url(#wf-arrow)"/>
+  <line class="connector" x1="618" y1="166" x2="656" y2="166" stroke-width="2" marker-end="url(#wf-arrow)"/>
+  <line class="connector" x1="924" y1="166" x2="962" y2="166" stroke-width="2" marker-end="url(#wf-arrow)"/>
+
+  <!-- Verification strip -->
+  <path class="accent-stroke" d="M791 286 V 318" stroke-width="2" stroke-dasharray="4 4" fill="none"/>
+  <rect class="card" x="48" y="320" width="1180" height="110" rx="14"/>
+  <text class="sans accent" x="72" y="352" font-size="11.5" font-weight="700" letter-spacing="1.6">VERIFIED IN THE BROWSER, WITHOUT AI</text>
+  <text class="sans ink2" x="72" y="376" font-size="14">Every quote is searched for in the transcript.</text>
+  <text class="sans ink2" x="72" y="398" font-size="14">Every number in a statement is checked too.</text>
+
+  <rect class="chip" x="470" y="350" width="130" height="30" rx="15"/>
+  <rect x="470" y="350" width="130" height="30" rx="15" fill="none" class="accent-line" stroke-width="1.5"/>
+  <text class="sans accent" x="535" y="370" font-size="13.5" font-weight="700" text-anchor="middle">↗ Grounded</text>
+  <text class="sans ink3" x="470" y="404" font-size="12.5">All quotes found</text>
+
+  <rect class="review-soft" x="704" y="350" width="130" height="30" rx="15"/>
+  <rect x="704" y="350" width="130" height="30" rx="15" fill="none" class="review-line" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <text class="sans review" x="769" y="370" font-size="13.5" font-weight="700" text-anchor="middle">Unverified</text>
+  <text class="sans ink3" x="704" y="404" font-size="12.5">No quote, or not found</text>
+
+  <rect class="review-soft" x="938" y="350" width="150" height="30" rx="6"/>
+  <text class="sans review" x="1013" y="370" font-size="13.5" font-weight="700" text-anchor="middle">Check number</text>
+  <text class="sans ink3" x="938" y="404" font-size="12.5">Value or unit not in transcript</text>
+</svg>

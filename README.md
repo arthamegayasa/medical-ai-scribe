@@ -1,44 +1,131 @@
-<p align="center"><img src="docs/banner.svg" alt="Medical AI Scribe — from conversation to considered documentation" width="100%" /></p>
+<p align="center"><img src="docs/banner.svg" alt="Medical AI Scribe. A fictional transcript turn linked to the SOAP draft statement it supports, and an unsupported statement marked unverified." width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/arthamegayasa/medical-ai-scribe/actions/workflows/checks.yml"><img src="https://github.com/arthamegayasa/medical-ai-scribe/actions/workflows/checks.yml/badge.svg?branch=main" alt="Medical AI Scribe automated checks" /></a>
-  <img src="https://img.shields.io/badge/Node.js-20%2B-417E38?logo=nodedotjs&amp;logoColor=white" alt="Node.js 20 or newer" />
-  <img src="https://img.shields.io/badge/Runtime_dependencies-0-147D78" alt="Zero runtime dependencies" />
-  <img src="https://img.shields.io/badge/Note_languages-English_%2F_Indonesia-285569" alt="English and Indonesian notes" />
+  <a href="https://github.com/arthamegayasa/medical-ai-scribe/actions/workflows/checks.yml"><img src="https://github.com/arthamegayasa/medical-ai-scribe/actions/workflows/checks.yml/badge.svg?branch=main" alt="Checks workflow status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0b6e5f" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D20-15242b?logo=nodedotjs&amp;logoColor=white" alt="Node.js 20 or newer">
+  <img src="https://img.shields.io/badge/runtime_dependencies-0-0b6e5f" alt="Zero runtime dependencies">
 </p>
 
-<p align="center"><a href="#quick-start">Quick start</a> · <a href="#connect-your-models">Model setup</a> · <a href="#the-workflow">Workflow</a> · <a href="#deployment">Deployment</a> · <a href="#development">Development</a></p>
+<p align="center">
+  <a href="https://medicalaiscribe.vercel.app"><strong>Open the app</strong></a> ·
+  <a href="#try-it-in-30-seconds">Try it</a> ·
+  <a href="#how-evidence-linking-works">Evidence linking</a> ·
+  <a href="#supported-providers">Providers</a> ·
+  <a href="#privacy-architecture">Privacy</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="docs/self-hosting.md">Self-hosting</a>
+</p>
 
 # Medical AI Scribe
 
 **A little less paperwork. A little more room for the patient.**
 
-A focused workspace that turns consultation transcripts into editable **SOAP drafts**. Paste text, or transcribe a short recording, choose a provider and model, and review the note before copying or exporting it. The interface is plain HTML, CSS and JavaScript; the server uses native Node.js APIs.
+Medical AI Scribe turns a clinical consultation, recorded, uploaded or pasted, into a **SOAP note draft** and shows which words of the conversation support each line. You connect your own AI provider; the browser talks to it directly. You review the draft, correct it, and decide what goes into the record.
 
-Originally a BIH presentation demo, this repository is now a standalone Medical AI Scribe. It is independent of a particular hospital and does not imply institutional endorsement.
+It is free, open source under the [MIT License](LICENSE), and written in plain HTML, CSS and JavaScript with no runtime dependencies and no build step.
 
-> The output is a documentation draft, not an autonomous diagnosis or prescription. Start with fictional or de-identified encounters. Clinician review and appropriate data handling are required before any clinical use.
+> [!IMPORTANT]
+> **Medical AI Scribe is not a medical device and does not diagnose or treat.** It produces documentation drafts that a qualified clinician must review, statement by statement, before any use. Language models can omit, misattribute or invent details; the evidence checks described below help you find those problems but cannot guarantee their absence. Obtaining consent to record, accepting your AI provider's data-processing terms and meeting local regulations remain the responsibility of the user and the deployer. See [Clinical safety](#clinical-safety).
 
-## A look inside
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/workspace-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/workspace-light.png">
+  <img src="docs/workspace-light.png" alt="The workspace with a fictional consultation: speaker-labelled transcript turns on the left; on the right a SOAP draft with a Draft banner, three review points, statements with links to transcript turns, and one statement marked Unverified." width="100%">
+</picture>
 
-![Actual Medical AI Scribe workspace with a fictional consultation, provider selector, and editable SOAP draft](docs/workspace.png)
+<sub>Screenshot of the current workspace showing the built-in fictional example. No real patient is involved and no AI request was made.</sub>
 
-*Actual local application screenshot. The prepared sample is explicitly labeled fictional; no provider request was used to produce this screenshot.*
+## Try it in 30 seconds
 
-| Capability | What you get |
+1. Open **[medicalaiscribe.vercel.app](https://medicalaiscribe.vercel.app)** and choose **Try the fictional example**.
+2. Point at a line in the draft, or select its link chip, to see the transcript turns that support it.
+3. Look at the statement marked **Unverified** and the **Needs review** list: that is what the app does when the source is missing or unclear.
+
+The example is a written, fictional consultation with a prepared draft. It needs no key, no account and makes no AI request.
+
+## What it does
+
+| | |
 | --- | --- |
-| **Your choice of model** | OpenAI, Anthropic, Google Gemini, OpenRouter, or a server-configured OpenAI-compatible endpoint. |
-| **A simple input flow** | Paste or type a transcript; optionally record or upload a short audio clip. |
-| **Separate transcription and drafting** | Correct the raw transcript before sending it to the note-generation model. |
-| **English or Bahasa Indonesia** | Choose the output language independently of the source dialogue. |
-| **Editable SOAP** | Chief complaint, Subjective, Objective, Assessment and Plan remain editable. |
-| **Portable notes** | Copy or download Markdown, with a draft label and source-model information. |
-| **A local example** | Explore a prepared fictional encounter without API keys or model charges. |
-| **A small codebase** | No frontend build framework, database, or runtime package dependencies. |
+| **Capture** | Record in the browser with pause and resume, upload an audio file (MP3, M4A, WAV, WebM, OGG, FLAC), or paste a transcript. Lines starting with `Doctor:` or `Patient:` become labelled turns. |
+| **Two models, your choice** | One model transcribes, another writes the note. They can come from different providers, or from a model on your own machine. |
+| **Long recordings** | Files larger than the provider's upload limit are decoded in the browser and cut at quiet points into 16 kHz mono WAV segments, transcribed in order and joined. |
+| **Speaker labels (optional)** | Use provider diarization where available, or ask the note model to label turns Doctor, Patient or Other. Relabelling is rejected if any word changes. |
+| **Evidence-linked SOAP draft** | Chief complaint, Subjective, Objective, Assessment, Plan. Every statement carries verbatim transcript quotes, checked without AI. |
+| **Review flags** | Unclear wording, contradictions, uncertain numbers or drug names, and possible mistranscriptions, collected in one list. |
+| **Specialty templates** | General practice, neurology, emergency, internal medicine, paediatrics and psychiatry in the workspace; the engine also has a follow-up visit template. Templates change emphasis only; they never license adding content. |
+| **Languages** | Interface in English and Bahasa Indonesia. Notes in English or Bahasa Indonesia, independent of the spoken language; the engine also supports Spanish, French, German and Portuguese notes. The fictional example is available in English and Bahasa Indonesia. |
+| **Section rewrite** | Regenerate one SOAP section while the rest of your edited draft stays as it is. |
+| **Export** | Copy, Markdown, plain text, Word (.docx), or print and save as PDF. The draft label, unverified markers, numbers to check and provenance travel with every format. |
+| **History, only if you want it** | Session history is off by default. Turned on, it stays in this browser only and can auto-delete. |
+
+## How evidence linking works
+
+This is the part of the design that matters most. A fluent draft is easy to trust and hard to check; the app is built so that checking is the default.
+
+<p align="center"><img src="docs/workflow.svg" alt="Four steps: Capture, Transcript, Draft, Export. Below the Draft step: verified in the browser without AI, with outcomes Grounded, Unverified and Check number." width="100%"></p>
+
+1. **The model must cite.** The note model is asked for strict JSON in which every statement has `text` and `evidence`: one or more short quotes copied character for character from the transcript. The transcript is passed as untrusted data, so instructions inside it are not obeyed. Empty sections say "Not documented in this encounter." instead of being filled in.
+2. **The output is validated.** Exact keys, non-empty sections, bounded lengths. Output that fails is rejected with an error; it is never shown as a note.
+3. **Every quote is checked, deterministically.** In the browser, without another AI call, each quote is searched for in the transcript. Matching ignores case, accents, punctuation and spacing, but a quote may not run across a sentence break the transcript has, never starts or ends inside a word or number, and must be long and specific enough to be evidence.
+4. **Every statement gets a status.**
+   - **Grounded**: it has at least one quote and every quote matches the transcript exactly. The link highlights the exact span in the transcript.
+   - **Close match**: every quote was found, but at least one only approximately. A one-word difference can be a negation ("allergic" against "not allergic"), so check the wording against the highlighted passage.
+   - **Edited**: you changed the line after its source was checked. Re-check it against the transcript.
+   - **Clinician-entered**: a line you typed yourself.
+   - **Unverified**: no quote, or a quote that is not in the transcript. Confirm it from your own knowledge of the encounter or delete it.
+   - **Check number**: any number in the statement, with its unit, that does not appear in the transcript with the same value and unit. Numbers are compared as values (2.5 is not 25, 1,5 is not 15); decimal commas, thousands groupings, ratios, ranges, unit synonyms and English and Indonesian number words are understood.
+5. **Drift is tracked.** Edit the transcript after drafting and the note is marked as possibly out of date, including in exports, until you rewrite it.
+
+Grounded does not mean correct. A quote can be found and still be misread, taken out of context or attributed to the wrong speaker. The checks narrow what you have to look at; they do not replace reading the draft against the encounter.
+
+## Supported providers
+
+Generated from the catalog in [`web/core/providers.js`](web/core/providers.js). Model IDs in the app come live from your key where the provider allows listing; otherwise you type the model ID.
+
+| Provider | Note model | Transcription | Speaker diarization | Model list | Upload limit per request | From the browser |
+| --- | :---: | :---: | :---: | :---: | ---: | --- |
+| OpenAI | yes | yes | yes, with `gpt-4o-transcribe-diarize` | yes | 25 MB | Direct |
+| Anthropic Claude | yes | – | – | yes | – | Direct |
+| Google Gemini | yes | yes, without timestamps | – | yes | 14 MB | Direct |
+| OpenRouter | yes | – | – | yes | – | Direct |
+| Groq | yes | yes (Whisper) | – | yes | 25 MB | Direct |
+| Mistral | yes | yes (Voxtral) | yes | yes | 25 MB | Direct |
+| Deepgram | – | yes | yes | – | 100 MB | Direct, transcription only (see below) |
+| ElevenLabs | – | yes (Scribe) | yes | – | 100 MB | Direct |
+| Local model (Ollama, LM Studio) | yes | if the server offers `/audio/transcriptions` | – | yes | 25 MB | After you enable CORS on the local server |
+| Custom OpenAI-compatible endpoint | yes | yes | – | yes | 25 MB | Only if the endpoint allows CORS |
+
+"Direct" means a CORS preflight from `https://medicalaiscribe.vercel.app` was verified on 2026-11-17 for every endpoint and header set the engine sends. Provider behaviour can change; [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-provider-preset) describes how to re-check.
+
+**Caveats you will meet:**
+
+- **Deepgram** allows cross-origin calls only on `POST /v1/listen`. The app therefore cannot list Deepgram models or test the key in advance; the key is checked on the first transcription.
+- **Ollama and LM Studio** reject requests from other origins until you allow them. For Ollama, set `OLLAMA_ORIGINS` to the app's origin; for LM Studio, enable CORS in its server settings. Some browsers also block or prompt before a public HTTPS page may call a server on `localhost`; running the app locally avoids that. A local note model does not make transcription local. See the [provider setup guide](docs/providers.md).
+- **Custom endpoints** must answer CORS preflights for the app's origin with `Authorization` and `Content-Type` allowed. If they do not, the browser reports a network error that it cannot distinguish from an outage; use server mode instead.
+
+Provider names belong to their owners and are listed only to describe compatibility. Each provider sets its own models, prices and data terms.
+
+## Privacy architecture
+
+<p align="center"><img src="docs/data-flow.svg" alt="Default browser-direct mode: the website host sends app files only; the browser sends audio and text with the user's key directly to the AI provider. Optional server mode: the browser sends content with a workspace access token to the deployer's server, which calls the provider with a server-held key." width="100%"></p>
+
+**Browser-direct (default).** The site that serves the app delivers static files and nothing else. Your key, audio, transcript and draft go from your browser to the provider you chose, over HTTPS. The app server never receives them.
+
+- **Keys** are kept for the current tab by default. You can choose to remember a key on this device; it is then stored in this browser's storage, where anyone using the same browser profile could use it. Connection settings without the key (provider, name, endpoint) are kept on the device as preferences.
+- **History** is off by default. When turned on, transcripts and drafts are stored in this browser only, can be deleted automatically after 1, 7 or 30 days, and can all be erased in one step.
+- **The provider still sees what you send** and processes it under its own terms. Check them, and use de-identified material unless your agreements and local rules allow otherwise.
+
+**Server mode (optional, for self-hosters).** Provider keys live in the deployment's environment variables, and the browser holds only a workspace access token. Audio and text then pass through that server on the way to the provider. The server does not store them, and its handlers return fixed error messages that never include keys, provider responses or transcript text. Your hosting platform's own request logs are outside the app's control.
+
+**Content Security Policy.** Scripts, styles, fonts and images load only from the app's own origin; inline scripts and styles are blocked; the app cannot be framed. Because you may connect to any provider, `connect-src` allows any HTTPS origin plus `localhost`. The reasoning is in [ADR 0006](docs/adr/0006-connect-src-https-csp.md).
+
+This project makes **no claim of compliance** with HIPAA, GDPR or any other healthcare or data-protection regime, and has not been clinically validated. Whether you may use it with patient data depends on your provider agreements, your institution and your jurisdiction.
 
 ## Quick start
 
-Use a maintained **Node.js 22 or 24** release and npm. The supported runtime floor is Node.js 20.
+Requires Node.js 20 or newer (CI runs 20, 22 and 24) and npm. There are no packages to download; `npm ci` only checks the empty lockfile.
 
 ```bash
 git clone https://github.com/arthamegayasa/medical-ai-scribe.git
@@ -47,127 +134,116 @@ npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:3000**. Click **Load example → Preview sample note** to try the complete editing and export flow without connecting an API.
+Open <http://127.0.0.1:3000>, load the fictional example, then add a connection in **Settings → Connections** with your own key. The dev server binds to `127.0.0.1` and reads an optional `.env` file; set `PORT` to use another port.
 
-To generate new notes, copy `.env.example` to `.env`, add one provider key, and restart the server:
+### Self-host
 
-```bash
-cp .env.example .env
-npm run dev
-```
+**Vercel.** Import the repository into your own Vercel project. `vercel.json` already sets the build command (`npm run build`), the output directory (`public/`), the security headers and the serverless functions under `api/`. With no environment variables the deployment runs in browser-direct mode.
 
-On PowerShell, the copy command is `Copy-Item .env.example .env`. The local server reads simple `KEY=value` entries from `.env`; already-set process variables take precedence. It does not load `.env.local` or execute shell expressions.
+**Any static host.** Browser-direct mode needs only files. Run `npm run build` and publish `public/`, and configure your host to send the same headers as `vercel.json`, in particular the Content-Security-Policy.
 
-## Connect your models
+**Any Node host.** `npm start` serves `web/` and the `/api/*` routes with the production headers, bound to `127.0.0.1`. Put a reverse proxy in front of it that terminates TLS and preserves the `Host` header.
 
-Provider keys belong in **server environment variables**, never in browser fields. The UI lists configured providers and lets you edit the **Model ID** for each request.
+Details, including a checklist before sharing a deployment, are in the [self-hosting guide](docs/self-hosting.md).
 
-| Provider | Key | Optional default model | API used |
-| --- | --- | --- | --- |
-| OpenAI | `OPENAI_API_KEY` | `OPENAI_MODEL=gpt-4.1-mini` | Chat Completions |
-| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_MODEL=claude-haiku-4-5-20251001` | Messages |
-| Google Gemini | `GEMINI_API_KEY` | `GEMINI_MODEL=gemini-2.5-flash` | Generate Content |
-| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_MODEL=openai/gpt-4.1-mini` | Chat Completions |
-| OpenAI-compatible | Optional `COMPATIBLE_API_KEY` | Required `COMPATIBLE_MODEL` or a model ID entered in the UI | Chat Completions at `COMPATIBLE_BASE_URL` |
+### Server mode
 
-The listed IDs are defaults, not promises that every account can use them. Choose a currently available text model that supports the provider's listed endpoint and can return the required JSON object. Image-only, audio-only, tool-only and endpoint-incompatible models will not work as SOAP generators. Upstream failures are reported as errors; the app never silently substitutes a fictional result.
-
-### Local or self-hosted models
-
-For a local Ollama server exposing its OpenAI-compatible endpoint:
+Copy `.env.example` to `.env` (PowerShell: `Copy-Item .env.example .env`) or set the variables in your host's dashboard, add at least one provider key and an access token, and restart.
 
 ```dotenv
-COMPATIBLE_BASE_URL=http://127.0.0.1:11434/v1
-COMPATIBLE_MODEL=your-installed-text-model
+ANTHROPIC_API_KEY=...
+OPENAI_API_KEY=...            # also used for transcription by default
+SCRIBE_ACCESS_TOKEN=<long random secret>
 ```
 
-Run the scribe and model server on the same machine, and replace the model value with an installed model. Other compatible services can use a hosted HTTPS endpoint and their own key. The base URL must include the service's API prefix, such as `/v1`. Plain HTTP is accepted only for loopback hosts.
+Users enter the access token in the app; it is not a provider key. On Vercel, or whenever `NODE_ENV=production`, the AI endpoints refuse all requests until `SCRIBE_ACCESS_TOKEN` is set.
 
-**Local text inference is separate from audio transcription.** A local Ollama text model does not automatically make the audio pipeline local. On a hosted deployment, `127.0.0.1` refers to that server, not your laptop.
+## Configuration reference
 
-### Optional audio transcription
+All variables are optional and apply to server mode only. Browser-direct mode needs none of them. Local processes read `.env`; variables already set in the environment take precedence.
 
-`OPENAI_API_KEY` enables the default OpenAI transcription endpoint, using `whisper-1`. You can independently configure another transcription model or a compatible transcription service:
+| Variable | Purpose |
+| --- | --- |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY` | Enable that provider for note writing and speaker labelling. |
+| `OPENAI_MODEL`, `ANTHROPIC_MODEL`, `GEMINI_MODEL`, `OPENROUTER_MODEL`, `GROQ_MODEL`, `MISTRAL_MODEL` | Default model ID for that provider. If unset, the preset's balanced mid-tier model is used. Users can choose another. |
+| `COMPATIBLE_BASE_URL`, `COMPATIBLE_API_KEY`, `COMPATIBLE_MODEL` | An OpenAI Chat Completions-compatible server. Include `/v1`. HTTPS is required except on `localhost`, `127.0.0.1` or `[::1]`. |
+| `TRANSCRIPTION_PROVIDER` | `openai` (default), `groq`, `mistral`, `gemini`, `deepgram` or `elevenlabs`. |
+| `TRANSCRIPTION_API_KEY` | Transcription key. If empty, that provider's key variable above is used. |
+| `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY` | Keys for those transcription providers. |
+| `TRANSCRIPTION_BASE_URL` | A custom OpenAI-compatible `/audio/transcriptions` server instead of a named provider. It receives only `TRANSCRIPTION_API_KEY`, never another provider's key. |
+| `TRANSCRIPTION_MODEL` | Default transcription model ID. |
+| `SCRIBE_ACCESS_TOKEN` | Workspace access token for `/api/*`. Required on Vercel and when `NODE_ENV=production`. |
+| `PORT` | Port for `npm run dev` and `npm start` (default 3000). |
 
-```dotenv
-TRANSCRIPTION_BASE_URL=https://your-transcription-service.example/v1
-TRANSCRIPTION_API_KEY=your-server-side-key
-TRANSCRIPTION_MODEL=your-transcription-model
-```
+Server-mode limits: 3 MB of audio per request (the browser segments larger files), transcripts up to 250,000 characters, and no streaming.
 
-The endpoint must accept `POST /audio/transcriptions` with multipart audio and return JSON with a `text` field. A custom endpoint uses only its explicitly configured transcription key; it never implicitly receives the OpenAI key. Leave `TRANSCRIPTION_BASE_URL` empty to use OpenAI.
-
-- Supported containers: WebM, MP4/M4A, MP3, WAV, OGG and FLAC, subject to provider support.
-- Maximum audio size: **2.5 MB** per request. Browser recording stops after **three minutes**, and a shorter recording may be necessary to stay within the size limit.
-- Recording needs microphone permission and HTTPS or localhost. Audio is submitted when recording ends; upload selection submits the selected file.
-- Transcription returns editable text. The app does not infer speaker identities or claim true speaker diarization.
-- Transcripts are limited to **30,000 characters**. Split longer encounters into suitable segments before use.
-
-## The workflow
-
-![Five-stage diagram: capture audio or text, verify transcript, choose AI, review SOAP draft, and export](docs/workflow.svg)
-
-1. **Capture** — paste text, record audio, or upload a file.
-2. **Verify** — correct the transcript, especially names, medications, numbers and units.
-3. **Structure** — choose a provider, model and note language; generate the draft.
-4. **Review** — compare every section with the source. Edit the draft before using it.
-5. **Export** — copy or save Markdown. If the transcript changed after generation, the exported note includes that warning.
-
-The prompt asks the model to include only explicitly documented facts, assessments and plans, preserve uncertainty, and mark missing information. The server validates the five required fields and rejects malformed, refused or truncated responses. **Schema validation cannot establish clinical correctness**; it checks structure, while the clinician checks meaning.
-
-## Data handling
-
-- The app has no patient database and does not automatically save transcripts, recordings, access tokens or notes to browser storage. Refreshing or clearing the workspace discards its in-memory contents.
-- Live audio reaches the configured transcription service. The verified transcript reaches the selected text-model provider. Their retention and processing policies apply; this repository does not establish healthcare compliance or a data-processing agreement.
-- Browser copy and export actions create content in the clipboard or a downloaded file. Handle those copies appropriately.
-- Provider keys are read only on the server. Upstream errors are redacted, and the application does not log encounter content or credentials. Hosting/network logs are controlled separately by the deployment operator.
-- `SCRIBE_ACCESS_TOKEN` protects the costly endpoints on hosted/production runs. This shared workspace token is a small access gate, not a multi-user identity or clinical audit system. Apply appropriate access control, provider spending limits and hosting configuration before shared use.
-
-## Deployment
-
-The repository includes Vercel functions at `/api/config`, `/api/generate-soap`, and `/api/process-audio`. The static build copies only the browser page and its assets into `public/`; server source and environment files are not static-site output.
-
-```bash
-npm run check
-npm test
-npm run build
-```
-
-Import this repository into your own Vercel project. `vercel.json` declares the build command and output directory. Set at least one provider key and a strong, random **`SCRIBE_ACCESS_TOKEN`** in the project's server environment. Redeploy after changing environment values. Enter the workspace token in the app's password field; do not enter a provider API key there.
-
-AI endpoints fail closed on Vercel or when `NODE_ENV=production` if the access token is missing. The static example remains usable. A deployment behind a reverse proxy must preserve the request host/origin relationship; cross-origin browser API requests are rejected.
-
-The old repository name, `bih-ai-transcription`, is retained in Git history. Renaming a GitHub repo does not automatically rename an existing hosting project or its domain.
-
-## Development
+## Architecture
 
 ```text
-index.html              Accessible two-panel workspace
-assets/                 Browser logic, styling and favicon
-api/                    Vercel HTTP entry points
-lib/                    Provider adapters, validation, security and build tools
-dev-server.js           Local loopback-only Node server
-tests/                  Provider and HTTP integration tests
-docs/                   Original diagrams and real application screenshot
-.env.example            Configuration reference without credentials
-vercel.json             Hosted functions and explicit static output
+web/                 The site, served as-is (no bundler)
+  index.html         Landing page
+  app/               Workspace shell (UI-CONTRACT.md documents its hooks)
+  assets/            CSS tokens and components, UI scripts, EN/ID strings, fonts, icons
+  core/              The engine: plain ES modules shared by browser and server
+    providers.js     Provider catalog, connection and endpoint validation
+    chat.js          Text generation with structured-output fallback and streaming
+    transcribe.js    Transcription per provider, segment upload with retries
+    audio/           Decoding, 16 kHz mono resampling, WAV encoding, silence-aware cuts
+    soap/            Prompt, strict schema, note generation, evidence verification
+    speakers.js      Speaker labelling with a word-for-word check
+    export/          Markdown, text, DOCX and print output
+    server-client.js Client for server mode
+lib/                 Server mode: configuration, request guard, handlers, build and check scripts
+api/                 Vercel function entry points (config, generate-soap, label-speakers, process-audio)
+dev-server.js        Local and Node-host server
+tests/               node:test suites with mocked providers
+docs/                Guides, ADRs and images
 ```
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the local server on `127.0.0.1:3000`. |
-| `npm run check` | Check JavaScript syntax, including frontend code. |
-| `npm test` | Run mocked provider and HTTP integration tests. |
-| `npm run build` | Create the allowlisted static output for hosting. |
+The same engine runs in both modes: in the browser for browser-direct mode, and imported by `lib/handlers.js` for server mode. Its API is documented in [`web/core/README.md`](web/core/README.md). Consequential decisions are recorded in [`docs/adr/`](docs/adr/), and terms are defined in [GLOSSARY.md](GLOSSARY.md).
 
-Tests cover all five provider request formats, custom model IDs, strict SOAP parsing, authentication, cross-origin rejection, input limits, safe error responses, timeouts, audio multipart encoding and the HTTP transcription-to-note flow. Provider responses are mocked: passing tests confirm the integration protocol, not a paid live API call or clinical validation. Browser checks cover the fictional example, note editing, changed-transcript labeling, copy/export and a mobile layout.
+## Testing
 
-For changes, keep provider-specific behavior in `lib/providers.js`, keep credentials out of frontend code, and add focused tests for meaningful behavior changes. Run the checks before submitting a pull request.
+```bash
+npm run check   # syntax-checks every JavaScript file
+npm test        # node --test: engine, server and build suites
+npm run build   # copies web/ into public/, skipping docs, tests and dotfiles
+```
 
-### Provider references
+The test suites use mocked provider responses. They cover request formats per provider, structured-output fallback, streaming, strict schema validation, evidence and number matching, speaker-label verification, audio segmentation, exports, server-mode authentication, origin checks, size limits and safe error responses. Passing tests show that the integration follows each provider's documented protocol; they are not live API calls and they are not clinical validation.
 
-The adapters follow the official [OpenAI Chat API](https://developers.openai.com/api/reference/resources/chat), [Anthropic Messages API](https://platform.claude.com/docs/en/api/messages/create), [Gemini Generate Content API](https://ai.google.dev/api/generate-content), [OpenRouter API](https://openrouter.ai/docs/quickstart), and [OpenAI transcription API](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create). Check each provider for current model availability and usage terms.
+`npm run test:e2e` runs browser end-to-end tests with no npm dependencies. It starts the app and a local mock provider, then drives an installed Chrome or Edge over the DevTools protocol (set `CHROME_PATH` if the browser is not in a standard location). The scenarios cover the fictional example, connecting a provider, recording, long-audio upload in segments, streamed drafting, evidence highlighting, every export format, history, key storage, error recovery, static hosting, server mode and a phone-sized viewport.
 
----
+## Roadmap
 
-Created by [Artha Megayasa](https://github.com/arthamegayasa). A license has not yet been selected for this repository.
+Current work:
+
+- Wiring the workspace shell to the engine (the shell and engine exist; the connecting layer is in progress).
+- Browser end-to-end tests against a mock provider.
+
+Next, based on gaps in the current code:
+
+- Offer every engine note language in the workspace, not only English and Bahasa Indonesia.
+- Offer the engine's follow-up visit template in the workspace.
+
+Suggestions are welcome as [feature requests](https://github.com/arthamegayasa/medical-ai-scribe/issues/new/choose).
+
+## Contributing
+
+Contributions are welcome, especially from clinicians who can report where drafts go wrong. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the zero-dependency and CSP rules, and how to add a provider, template or language. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report security issues privately as described in [SECURITY.md](SECURITY.md).
+
+## Clinical safety
+
+- The output is a **draft**. It is labelled as one in the app and in every export, and the label cannot be removed in the workspace.
+- A qualified clinician must read every statement against the encounter before it is used. Pay particular attention to medications, doses, numbers, laterality and anything marked unverified or flagged for review.
+- The model is instructed to record only what was said, including the clinician's own stated assessment and plan, and not to add diagnoses, findings or advice. Instructions are not guarantees.
+- The project publishes no accuracy figures. Quality depends on the model, the audio, the transcript and the encounter.
+- Ask the patient's permission before recording, follow your institution's policies, and use real patient data only where your provider agreements and local law allow it.
+
+## About
+
+Created by [Artha Megayasa](https://www.arthamegayasa.com), a neurologist. The project began as a presentation demo and is now developed independently. It has no institutional affiliation or endorsement.
+
+## License
+
+[MIT](LICENSE) © 2026 Artha Megayasa. Bundled fonts (Source Serif 4, Atkinson Hyperlegible Next) are under the SIL Open Font License; their licence texts are in [`web/assets/fonts/`](web/assets/fonts/).

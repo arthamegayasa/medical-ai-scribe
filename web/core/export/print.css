@@ -1,0 +1,9 @@
+body{font:11pt/1.45 Georgia,serif;color:#111;max-width:48rem;margin:2rem auto;padding:0 1rem}
+h1{font-size:16pt}
+h2{font-size:12.5pt;margin-top:1.4em;border-bottom:1px solid #999}
+.banner{border:2px solid #b00;padding:.4em .6em;margin:.4em 0;font-weight:bold}
+.mark{font-weight:bold;color:#b00}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:.2em 1em}
+dt{font-weight:bold}
+@media print{body{margin:0}
+}
