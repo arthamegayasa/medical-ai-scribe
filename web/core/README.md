@@ -14,7 +14,7 @@ Two modes, same result shapes:
 | **Server keys** | `createServerClient()` calls `/api/*` with an optional app access token. | The deployment's server and its provider. |
 
 Everything the engine produces is a **draft for clinician review**. Keep the DRAFT label, the
-review flags and the unverified markers visible in the UI.
+review flags and the unverified, close-match, edited and check-number markers visible in the UI.
 
 ---
 
@@ -53,8 +53,10 @@ try { ... } catch (e) { if (e instanceof ScribeError) show(e.code, e.message); }
 
 `e.retryable` is `true` for `rate_limit`, `provider_unavailable`, `network`, `timeout`.
 
-Every async function accepts `signal` (an `AbortSignal`), `timeoutMs` and `fetchImpl` (defaults to
-`globalThis.fetch`; tests inject a mock).
+Every async browser-direct function (providers, generation, speaker labelling, transcription)
+accepts `signal` (an `AbortSignal`), `timeoutMs` and `fetchImpl` (defaults to `globalThis.fetch`;
+tests inject a mock). The server-mode client is different: it takes `fetchImpl` and `timeoutMs`
+once, in `createServerClient(...)`, and its methods accept only `signal` (section 8).
 
 ---
 
@@ -207,24 +209,69 @@ Pure and synchronous. Pass the transcript the note was generated from.
 {
   sections: { chief_complaint: Result[], ... },  // same order as note statements
   review_flags: Result[],
-  summary: { statements, grounded, unverified, notDocumented, numberIssues },
+  summary: { statements, grounded, approximate, unverified, edited, clinician, notDocumented, numberIssues },
 }
 Result = {
-  status: 'grounded' | 'unverified' | 'not_documented',
-  quotes: [{ quote, found: true, start, end, exact } | { quote, found: false }],
-  numbers: [{ text: '500 mg', number: '500', unit: 'mg' | null, found }],
+  status: 'grounded' | 'approximate' | 'unverified' | 'not_documented',   // + 'edited' | 'clinician', see below
+  quotes: [{ quote, found: true, start, end, exact, match: 'exact' | 'approximate' } | { quote, found: false, reason: 'weak' | 'absent' }],
+  numbers: [{ text: '500 mg', number: '500', unit: 'mg' | null, found, reason?: 'absent' | 'unit' | 'ambiguous' }],
 }
 ```
 
-- `grounded`: at least one quote and every quote found. `start`/`end` are UTF-16 offsets into the
-  original `transcript` string — `transcript.slice(start, end)` is the span to highlight.
-- Matching ignores case, accents, punctuation and whitespace; quotes of 3+ words may differ by about
-  15% of words (`exact: false`).
-- `numbers`: every number (with unit if any) in the statement text; `found: false` means the
-  transcript does not contain it (decimal comma/point, thousands separators, unit synonyms and
-  English/Indonesian number words up to twenty plus tens are understood). Show these as "check number".
+Statuses:
 
-Lower-level helpers: `indexTranscript(transcript)` and `findQuote(index, quote)`.
+- `grounded`: at least one quote, and **every** quote matches the transcript exactly after
+  normalisation. Only an exact match can ground a statement. `start`/`end` are UTF-16 offsets into
+  the original `transcript` string: `transcript.slice(start, end)` is exactly the matched source
+  text (also with CRLF line endings, accents, emoji and other multi-byte characters).
+- `approximate`: every quote was found, but at least one only as a close match: it matches only when
+  sentence punctuation is ignored, or (quotes of 3+ words) within about 15% word edits. A close
+  match can hide a changed negation ("I am allergic" against "I am not allergic"), so it is never
+  grounded: show it as needing review ("close match: check wording"), like `unverified`, with the
+  matched span available for highlighting.
+- `unverified`: no evidence, or a quote that was not found or was too weak to be evidence.
+- `not_documented`: the language's exact "not documented" line with no evidence.
+- `edited` and `clinician` are never produced by `verifyNote`; an app sets them from statement
+  provenance (the workspace does, in `web/assets/js/app/note.js`): `edited` = a model statement
+  whose text changed after verification, `clinician` = a line the clinician typed. Exports render
+  all six statuses, and `summarizeVerification(sections)` recounts a summary after such changes.
+
+Quote matching (`findQuote`):
+
+- Normalisation folds case and accents and treats any run of whitespace and punctuation (quote
+  marks, commas, dashes, line breaks) as one space. Sentence punctuation (`. ! ? ;` and ellipses)
+  is a boundary: a quote may cross it only if the quote has sentence punctuation there too, so
+  "no chest pain" is not grounded by "No. Chest pain". Trailing punctuation in a quote is ignored.
+- Matches are word-aligned and never start or end inside a word or a number: `.` `,` `/` `:` and
+  dashes between digits stay part of the number ("5 mg" is not found in "2.5 mg", "80 mmHg" not in
+  "120/80 mmHg", "3 days" not in "2-3 days"). A unit glued to a number reads like the spaced form
+  ("500mg" = "500 mg").
+- Weak quotes never count (`reason: 'weak'`): fewer than three letters or digits, a bare number, or
+  only filler words, pronouns and speaker labels (English and Indonesian, see `isWeakQuote`).
+
+Number check (`checkNumbers`, `indexNumbers`); every number in a statement is checked and a number
+that cannot be matched is flagged, never skipped:
+
+- Numbers are compared as parsed values, never as text: "25" never matches "2.5", "15" never "1,5".
+  `.` and `,` are both decimal marks. Separators are ignored only in a valid thousands grouping
+  (groups of exactly three digits after a first group of 1-3 digits not starting with 0: "1,000",
+  "1.000", "1 000", "1,234.5"); anything else with several separators ("1,23,456") is ambiguous and
+  always flagged (`reason: 'ambiguous'`). Note that "2.500" therefore reads as 2500.
+- Units are compared when the statement gives one, glued or spaced ("500mg"), with English and
+  Indonesian spellings ("milligrams", "miligram", "hari" = days). Same number with another unit
+  (`5 mg` vs `5 g`, `mg` vs `mcg`, `°C` vs `°F`, days vs weeks) is flagged (`reason: 'unit'`), as
+  is a unit the transcript did not give.
+- Ratios (`120/80`, "120 over 80") and ranges (`2-3`, "2 to 3", "2 sampai 3") are compared whole.
+  A single value may come from one side of a ratio ("diastolic 80"), not from a written range
+  ("3 days" is not "2-3 days"); spoken ranges ("from 5 to 10 mg") also confirm their ends, because
+  speech uses the same words for dose changes.
+- English and Indonesian number words are parsed in both texts: compounds ("one hundred and twenty",
+  "dua puluh lima", "dua ribu lima ratus"), decimals ("two point five", "dua koma lima"), halves
+  ("one and a half", "satu setengah") and frequencies ("once", "twice"). Pronoun uses ("no one",
+  "salah satu") are not numbers. Number words in other languages are not parsed.
+
+Lower-level helpers: `indexTranscript(transcript)`, `findQuote(index, quote)`, `isWeakQuote`,
+`indexNumbers(transcript)`, `checkNumbers(text, index)`, `summarizeVerification(sections)`.
 
 ---
 
@@ -302,8 +349,10 @@ await core.transcribeSegments({ ...transcribeOptions, segments, concurrency = 2,
 All take `input = { note, meta, verification?, transcriptChanged = false, fictional = false }`
 (`meta` from `generateNote`). Every format includes: the DRAFT / clinician-review label, a
 fictional-sample label when `fictional`, the transcript-changed warning when `transcriptChanged`, an
-"evidence not verified" notice when `verification` is absent (or the unverified count when present),
-`[UNVERIFIED]` and `[CHECK NUMBER: ...]` markers per statement, review flags, and provenance
+"evidence not verified" notice when `verification` is absent (or, when present, banners counting
+unverified, close-match and edited statements), per-statement markers `[UNVERIFIED]`,
+`[CLOSE MATCH - CHECK WORDING]`, `[EDITED - RE-CHECK AGAINST TRANSCRIPT]`, `[CLINICIAN-ENTERED]` and
+`[CHECK NUMBER: ...]`, review flags, and provenance
 (provider, model, template, language, generated time). Indonesian notes (`meta.language === 'id'`)
 get Indonesian labels.
 
@@ -340,6 +389,10 @@ Server `provider` ids are `openai, anthropic, gemini, openrouter, groq, mistral,
 `limits.audio_bytes` (3 MB ≈ 90 s of 16 kHz WAV), so always segment with
 `prepareSegments(file, { maxUploadBytes: config.limits.audio_bytes })` unless the file is smaller.
 Run `verifyNote` in the browser on the returned note, exactly as in BYOK mode.
+
+Errors are `ScribeError`s mapped from the response's stable `code` only (401 = `access_denied`,
+configuration codes = `server_not_configured`, unknown codes = `invalid_response`), each with the
+engine's fixed message. The body's `error` text is never copied into an error.
 
 ---
 

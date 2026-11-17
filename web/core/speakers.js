@@ -36,16 +36,23 @@ export function verifyLabelledTurns(source, turns) {
   return { ok: true };
 }
 
-/** Splits text into chunks of at most `maxChars`, preferring line then sentence boundaries. */
+/**
+ * Splits text into chunks of at most `maxChars`, preferring line, then sentence, then word
+ * boundaries. A chunk boundary is always whitespace, so no word is ever cut in two; a single word
+ * longer than `maxChars` becomes an oversized chunk of its own.
+ */
 export function splitForLabelling(text, maxChars = CHUNK_CHARS) {
   const chunks = [];
   let rest = text.trim();
   while (rest.length > maxChars) {
-    const head = rest.slice(0, maxChars);
+    const head = rest.slice(0, maxChars + 1);
     let cut = head.lastIndexOf('\n');
     if (cut < maxChars / 2) cut = Math.max(head.lastIndexOf('. '), head.lastIndexOf('? '), head.lastIndexOf('! ')) + 1;
-    if (cut < maxChars / 2) cut = head.lastIndexOf(' ');
-    if (cut <= 0) cut = maxChars;
+    if (cut < maxChars / 2) cut = Math.max(...[...head.matchAll(/\s/g)].map((match) => match.index), -1);
+    if (cut <= 0) {
+      const next = rest.slice(maxChars).search(/\s/);
+      cut = next === -1 ? rest.length : maxChars + next;
+    }
     chunks.push(rest.slice(0, cut).trim());
     rest = rest.slice(cut).trim();
   }

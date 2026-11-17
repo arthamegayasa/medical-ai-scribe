@@ -535,7 +535,14 @@ function boot() {
 
   const params = new URLSearchParams(location.search);
   if (params.has('demo')) {
-    import('./demo-states.js').then((mod) => mod.runDemo(params.get('demo') || 'note'));
+    // The design-review harness exists only in local development (lib/publish.js keeps it out of
+    // the production build). Without it, hand the page back to the normal workspace.
+    import('./demo-states.js')
+      .then((mod) => mod.runDemo(params.get('demo') || 'note'))
+      .catch(() => {
+        document.documentElement.dataset.demoHarness = 'missing';
+        document.dispatchEvent(new CustomEvent('ui:demo-unavailable'));
+      });
   }
   document.dispatchEvent(new CustomEvent('ui:ready'));
 }

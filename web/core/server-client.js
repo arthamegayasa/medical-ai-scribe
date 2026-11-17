@@ -31,11 +31,11 @@ export function createServerClient({ accessToken = '', baseUrl = '', fetchImpl =
         : { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
       const data = await readJson(response).catch(() => ({}));
       if (response.ok) return data;
-      // Server error messages are fixed, non-sensitive strings, so they can be shown as-is.
-      const message = typeof data.error === 'string' ? data.error : undefined;
-      if (response.status === 401) throw new ScribeError('access_denied', message);
-      if (SERVER_CONFIG_CODES.has(data.code)) throw new ScribeError('server_not_configured', message);
-      throw new ScribeError(ERROR_CODES.includes(data.code) ? data.code : 'invalid_response', message, { status: response.status });
+      // Only the stable `code` is used; the body's `error` text is never copied into errors, so a
+      // misbehaving proxy or server cannot put arbitrary (possibly clinical) text into the UI.
+      if (response.status === 401) throw new ScribeError('access_denied');
+      if (SERVER_CONFIG_CODES.has(data.code)) throw new ScribeError('server_not_configured');
+      throw new ScribeError(ERROR_CODES.includes(data.code) ? data.code : 'invalid_response', undefined, { status: response.status });
     } catch (error) {
       if (timedOut) throw new ScribeError('timeout');
       if (signal?.aborted) throw new ScribeError('aborted');

@@ -22,6 +22,90 @@ export async function purgeExpired(store, days, now = Date.now()) {
   return removed;
 }
 
+/**
+ * Auto-delete. `start()` purges once (call it right after the store opens) and then every
+ * `intervalMs` while the app stays open; `skip()` is for a store that could not open.
+ * `count()` and `ready()` wait until start-up has purged (or skipped) and for any running purge,
+ * so no count ever includes expired sessions.
+ */
+export function createRetention({ history, getDays, now = Date.now, timers = globalThis, intervalMs = 15 * 60 * 1000 }) {
+  let opened;
+  let running = new Promise((resolve) => { opened = resolve; });
+  let interval = 0;
+  const purge = () => {
+    running = running.catch(() => 0).then(() => purgeExpired(history, getDays(), now())).catch(() => 0);
+    return running;
+  };
+  return {
+    purge,
+    start() {
+      timers.clearInterval(interval);
+      interval = timers.setInterval(purge, intervalMs);
+      const first = Promise.resolve().then(() => purgeExpired(history, getDays(), now())).catch(() => 0);
+      running = first;
+      // Anything that asked before start-up (a count, the drawer) continues after the first purge.
+      first.then(() => opened());
+      return first;
+    },
+    skip() { opened(); running = Promise.resolve(0); },
+    stop() { timers.clearInterval(interval); interval = 0; },
+    ready: () => running.then(() => undefined),
+    async count() { await running; return history.count(); },
+  };
+}
+
+/**
+ * Debounced, ordered saving of the open session, with deletes that stick:
+ * - `schedule()` saves after `delayMs`; `save()` saves now. Saves run one after another.
+ * - `remove(id, { current })` / `removeAll()` cancel a scheduled save, wait for a running one,
+ *   then delete. Deleting the open session holds saving, so neither a late timer nor the next
+ *   state change re-saves it under a new id.
+ * - `changed()` (a new change by the user) and `release()` (another session opened or started)
+ *   lift the hold.
+ */
+export function createHistorySaver({ history, getSession, canSave, onSaved = () => {}, onError = () => {}, timers = globalThis, delayMs = 700 }) {
+  let timer = 0;
+  let chain = Promise.resolve();
+  let held = false;
+  const cancel = () => { timers.clearTimeout(timer); timer = 0; };
+  function save() {
+    cancel();
+    const session = getSession();
+    if (held || !canSave(session)) return chain;
+    const id = session.id || newSessionId();
+    const record = toRecord(session, { id });
+    chain = chain.then(() => history.put(record)).then(() => onSaved(id, session), (error) => onError(error));
+    return chain;
+  }
+  async function settle() {
+    cancel();
+    await chain.catch(() => {});
+  }
+  function schedule() {
+    if (held) return;
+    cancel();
+    timer = timers.setTimeout(save, delayMs);
+  }
+  return {
+    schedule,
+    save,
+    settle,
+    async remove(id, { current = false } = {}) {
+      await settle();
+      if (current) held = true;
+      await history.delete(id);
+    },
+    async removeAll() {
+      await settle();
+      held = true;
+      await history.clear();
+    },
+    changed() { held = false; schedule(); },
+    release() { held = false; },
+    get held() { return held; },
+  };
+}
+
 /** A short title for the list: the first chief-complaint line, else the first words spoken. */
 export function sessionTitle(session) {
   const cc = session.note?.sections?.chief_complaint?.find((item) => String(item.text).trim());
@@ -36,12 +120,21 @@ export function newSessionId(now = Date.now()) {
   return `h${now.toString(36)}${counter.toString(36)}`;
 }
 
+// Statement provenance (origin, verifiedText) is kept so an edited or clinician-entered line still
+// reads that way after reopening. Records from before provenance existed load as model lines with
+// no verified text, which the workspace shows as edited (re-check) rather than grounded.
+function statementRecord({ id, text, evidence, origin, verifiedText }) {
+  const record = { id, text, evidence: [...evidence], origin: origin === 'clinician' ? 'clinician' : 'model' };
+  if (record.origin === 'model' && typeof verifiedText === 'string') record.verifiedText = verifiedText;
+  return record;
+}
+
 /** Copies only encounter fields into a storable record. */
 export function toRecord(session, { id, now = new Date() } = {}) {
   const at = now.toISOString();
   const note = session.note
     ? {
-      sections: Object.fromEntries(SECTIONS.map((key) => [key, (session.note.sections[key] || []).map(({ id: sid, text, evidence }) => ({ id: sid, text, evidence: [...evidence] }))])),
+      sections: Object.fromEntries(SECTIONS.map((key) => [key, (session.note.sections[key] || []).map(statementRecord)])),
       flags: session.note.flags.map(({ id: fid, type, text, evidence, resolved }) => ({ id: fid, type, text, evidence: [...evidence], resolved: Boolean(resolved) })),
     }
     : null;
@@ -80,7 +173,7 @@ export function fromRecord(record) {
     turns: record.turns || [],
     labels: record.labels || 'none',
     speakersOn: record.speakersOn !== false,
-    note: record.note,
+    note: record.note ? { ...record.note, sections: Object.fromEntries(SECTIONS.map((key) => [key, (record.note.sections?.[key] || []).map(statementRecord)])) } : null,
     meta: record.meta,
     edited: Boolean(record.edited),
     staleDismissed: Boolean(record.staleDismissed),

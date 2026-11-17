@@ -5,6 +5,7 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHandlers } from './lib/handlers.js';
+import { isPrivatePath, securityHeaders } from './lib/publish.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const TYPES = {
@@ -13,7 +14,9 @@ const TYPES = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
 };
 // vercel.json is the single source of the production security headers.
-const SECURITY_HEADERS = JSON.parse(readFileSync(resolve(ROOT, 'vercel.json'), 'utf8')).headers[0].headers;
+const SECURITY_HEADERS = securityHeaders(JSON.parse(readFileSync(resolve(ROOT, 'vercel.json'), 'utf8')));
+// End-to-end test hook marker (see makeServer's `testHooks`). Never present in the built site.
+const TEST_HOOKS_META = '<meta name="scribe-test-hooks" content="on">';
 
 export function loadLocalEnv(path = resolve(ROOT, '.env'), env = process.env) {
   if (!existsSync(path)) return;
@@ -34,13 +37,18 @@ function publicPath(webRoot, pathname) {
   try { decoded = decodeURIComponent(pathname); } catch { return null; }
   if (!/^\/[A-Za-z0-9_./-]*$/.test(decoded)) return null;
   const segments = decoded.split('/').filter(Boolean);
-  // Dot segments cover "..", dotfiles and .env; Markdown and tests are never published.
-  if (segments.some(segment => segment.startsWith('.')) || /\.md$|\.test\.js$/i.test(decoded)) return null;
+  // Dot segments (".." , dotfiles, .env), Markdown and tests are never served (lib/publish.js).
+  if (isPrivatePath(decoded)) return null;
   const path = resolve(webRoot, ...segments);
   return path === webRoot || path.startsWith(webRoot + sep) ? path : null;
 }
 
-export function makeServer({ webRoot = resolve(ROOT, 'web'), ...options } = {}) {
+/**
+ * @param {object} [options] handler options plus `webRoot` and `testHooks`. `testHooks: true` (used
+ *   only by `npm run test:e2e`) adds a meta tag to HTML pages that makes the workspace expose its
+ *   store as `window.__scribe`. Normal development and the production build never have it.
+ */
+export function makeServer({ webRoot = resolve(ROOT, 'web'), testHooks = false, ...options } = {}) {
   const handlers = createHandlers(options);
   const routes = { '/api/config': handlers.config, '/api/generate-soap': handlers.generateSoap, '/api/label-speakers': handlers.labelSpeakers, '/api/process-audio': handlers.processAudio };
   const root = resolve(webRoot);
@@ -69,7 +77,11 @@ export function makeServer({ webRoot = resolve(ROOT, 'web'), ...options } = {}) 
       const realRoot = await realpath(root);
       const type = TYPES[extname(real).toLowerCase()];
       if (!type || !real.startsWith(realRoot + sep)) return notFound();
-      const data = await readFile(real);
+      let data = await readFile(real);
+      if (testHooks && type.startsWith('text/html')) {
+        const html = data.toString('utf8');
+        data = Buffer.from(html.includes('</head>') ? html.replace('</head>', `${TEST_HOOKS_META}</head>`) : `${html}${TEST_HOOKS_META}`);
+      }
       res.setHeader('Content-Type', type);
       res.statusCode = 200;
       return res.end(req.method === 'HEAD' ? undefined : data);

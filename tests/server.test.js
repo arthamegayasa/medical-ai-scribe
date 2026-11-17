@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeServer } from '../dev-server.js';
 import { buildSite } from '../lib/build.js';
+import { isPrivatePath, isDevOnly, securityHeaders } from '../lib/publish.js';
 import { NOTE, openaiReply } from './fixtures.js';
 
 const VERCEL = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
@@ -17,6 +18,7 @@ async function fixtureSite(t) {
     'index.html': '<!doctype html><title>Landing</title>', 'app/index.html': '<!doctype html><title>Workspace</title>',
     'core/index.js': 'export const engine = true;', 'core/README.md': '# private notes', 'core/x.test.js': 'test', 'assets/site.css': 'body{}',
     'assets/logo.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>', '.env': 'SECRET=1', 'core/data.bin': 'raw',
+    'assets/js/demo-states.js': 'export function runDemo() {}',
   };
   for (const [name, content] of Object.entries(files)) {
     await mkdir(join(dir, name, '..'), { recursive: true });
@@ -149,4 +151,38 @@ test('build copies web/ recursively into a clean output, skipping docs, tests an
   assert.deepEqual(files, ['app/index.html', 'assets/logo.svg', 'assets/site.css', 'core/data.bin', 'core/index.js', 'index.html']);
   assert.equal(count, files.length);
   await assert.rejects(buildSite({ source: join(source, 'missing'), output }), /web\/ directory is missing/);
+});
+
+test('one publish predicate decides what the build and the local server keep private', async t => {
+  for (const path of ['.env', 'core/.hidden/x.js', 'core/README.md', 'notes.MD', 'core/x.test.js', 'a\\b\\.git\\config']) assert.equal(isPrivatePath(path), true, path);
+  for (const path of ['index.html', 'core/index.js', 'assets/js/demo-states.js', 'core/testing.js']) assert.equal(isPrivatePath(path), false, path);
+  assert.equal(isDevOnly('assets/js/demo-states.js'), true);
+  assert.equal(isDevOnly('assets\\js\\demo-states.js'), true);
+  assert.equal(isDevOnly('assets/js/app-ui.js'), false);
+  // The design-review harness is served in local development but never built for production.
+  const webRoot = await fixtureSite(t);
+  const base = await start(t, { webRoot, env: {} });
+  assert.equal((await fetch(`${base}/assets/js/demo-states.js`)).status, 200);
+  const output = join(webRoot, '..', `${webRoot.split(/[\\/]/).pop()}-out`);
+  t.after(() => rm(output, { recursive: true, force: true }));
+  await buildSite({ source: webRoot, output });
+  await assert.rejects(readFile(join(output, 'assets', 'js', 'demo-states.js')));
+});
+
+test('security headers come from the catch-all vercel.json entry wherever it is listed', () => {
+  const catchAll = [{ key: 'X-Test', value: 'all' }];
+  assert.deepEqual(securityHeaders({ headers: [{ source: '/api/(.*)', headers: [{ key: 'X-Test', value: 'api' }] }, { source: '/(.*)', headers: catchAll }] }), catchAll);
+  assert.throws(() => securityHeaders({ headers: [{ source: '/api/(.*)', headers: [] }] }), /catch-all/);
+  assert.deepEqual(securityHeaders(VERCEL), VERCEL.headers.find(h => h.source === '/(.*)').headers);
+});
+
+test('end-to-end test hooks exist only when the local server is started with testHooks', async t => {
+  const webRoot = await fixtureSite(t);
+  const plain = await start(t, { webRoot, env: {} });
+  assert.doesNotMatch(await (await fetch(`${plain}/app/`)).text(), /scribe-test-hooks/);
+  const hooked = await start(t, { webRoot, env: {}, testHooks: true });
+  assert.match(await (await fetch(`${hooked}/app/`)).text(), /<meta name="scribe-test-hooks" content="on">/);
+  const main = await readFile(new URL('../web/assets/js/app/main.js', import.meta.url), 'utf8');
+  assert.match(main, /if \(document\.querySelector\('meta\[name="scribe-test-hooks"\]'\)\) window\.__scribe = /, 'the store hook is gated on the test meta tag');
+  assert.equal(main.match(/window\.__scribe\s*=/g).length, 1);
 });

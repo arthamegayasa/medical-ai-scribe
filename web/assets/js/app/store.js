@@ -13,7 +13,7 @@ export function emptySession(id = null) {
     turns: [],
     labels: 'none',        // 'none' | 'source' (pasted labels) | 'native' (diarized) | 'ai' (suggested) | 'manual'
     speakersOn: true,
-    note: null,            // { sections: { [section]: [{ id, text, evidence }] }, flags: [{ id, type, text, evidence, resolved }] }
+    note: null,            // { sections: { [section]: [{ id, text, evidence, origin, verifiedText? }] }, flags: [{ id, type, text, evidence, resolved }] } (origin: see note.js)
     meta: null,            // engine meta (provider, model, template, language, generatedAt, transcriptHash)
     edited: false,         // the clinician changed the draft after generation
     staleDismissed: false,
@@ -26,7 +26,7 @@ export function initialState(overrides = {}) {
   return {
     mode: 'byok',
     server: null,          // public /api/config when the server offers providers
-    accessToken: '',       // server access token is never persisted beyond the tab (kept in memory)
+    accessToken: '',       // server access token; kept in sessionStorage for this tab only (never localStorage)
     connections: [],       // records with hasKey, never keys
     connectionStatus: {},  // id -> 'ok' | 'error' | 'untested'
     prefs: sanitizePrefs(DEFAULT_PREFS),
@@ -131,7 +131,7 @@ export function reducer(state, action) {
     case 'statement/edit':
       return editNote(state, (note) => mapSections(note, (key, items) => (key === action.section ? items.map((item) => (item.id === action.id ? { ...item, text: action.text } : item)) : items)));
     case 'statement/add':
-      return editNote(state, (note) => mapSections(note, (key, items) => (key === action.section ? [...items, { id: action.id, text: action.text || '', evidence: [] }] : items)));
+      return editNote(state, (note) => mapSections(note, (key, items) => (key === action.section ? [...items, { id: action.id, text: action.text || '', evidence: [], origin: 'clinician' }] : items)));
     case 'statement/remove':
       return editNote(state, (note) => mapSections(note, (key, items) => (key === action.section ? items.filter((item) => item.id !== action.id) : items)));
     case 'section/regenerating':

@@ -103,11 +103,23 @@ The verbatim transcript quotes attached to a statement or review flag to show wh
 _Avoid_: citation, source, reference
 
 **Grounded**:
-The status of a statement that has at least one quote and whose quotes are all found in the transcript.
+The status of a statement that has at least one quote and whose quotes all match the transcript exactly after normalisation (case, accents, whitespace and punctuation), and whose text has not changed since that check.
 _Avoid_: verified, correct, linked
 
+**Close match** (status `approximate`):
+The status of a statement whose quotes were all found, at least one only approximately (ignoring sentence punctuation or within a few word edits). Never grounded: the clinician checks the wording, because a close match can hide a changed negation.
+_Avoid_: fuzzy match, nearly grounded
+
+**Edited**:
+The status of a model statement whose text the clinician changed after its evidence was checked. Its quotes stay visible, but it reads "edited, re-check against the transcript" until the text is again exactly what was verified or the section is regenerated.
+_Avoid_: modified, dirty
+
+**Clinician-entered**:
+The status of a statement the clinician typed into the draft. It has no evidence and is not an AI claim, so it is not called unverified.
+_Avoid_: manual, unverified
+
 **Unverified**:
-The status of a statement with no quote, or with a quote that cannot be found in the transcript.
+The status of a model statement with no quote, or with a quote that cannot be found in the transcript or is too short or generic to count as evidence.
 _Avoid_: hallucination, unsupported, wrong
 
 **Not documented**:
@@ -115,7 +127,7 @@ The status of a section that the transcript says nothing about, written as a fix
 _Avoid_: empty, N/A
 
 **Check number**:
-A marker on a statement containing a number, with its unit, that does not appear in the transcript.
+A marker on a statement containing a number (digits or English/Indonesian number words), with its unit, whose value and unit do not appear in the transcript, or whose separators make its value ambiguous.
 _Avoid_: number error
 
 **Review flag**:

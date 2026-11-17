@@ -1,6 +1,7 @@
 // Display formatting that follows the interface language.
 import { t } from '../i18n.js';
 import { PROVIDERS } from '../../../core/providers.js';
+import { NOTE_LANGUAGES } from './prefs.js';
 
 export const TEMPLATE_KEYS = Object.freeze({
   general: 'templates.general',
@@ -13,7 +14,9 @@ export const TEMPLATE_KEYS = Object.freeze({
 });
 
 export const templateLabel = (id) => t(TEMPLATE_KEYS[id] || 'templates.general');
-export const languageLabel = (code) => t(code === 'id' ? 'app.lang.id' : 'app.lang.en');
+/** Options for the note-language selects: every engine language, labelled in the UI language. */
+export const noteLanguageOptions = () => NOTE_LANGUAGES.map((value) => ({ value, key: `app.lang.${value}` }));
+export const languageLabel = (code) => (NOTE_LANGUAGES.includes(code) ? t(`app.lang.${code}`) : String(code || ''));
 
 export function providerLabel(id) {
   if (id === 'example') return t('app.conn.example');

@@ -1,5 +1,6 @@
 // SOAP draft: streamed generation, evidence chips linked to transcript spans (and back),
-// grounded/unverified/check-number markers from the engine verifier (re-run on every edit),
+// grounded / close-match / edited / clinician-entered / unverified and check-number markers from
+// the engine verifier plus statement provenance (re-run on every edit),
 // review flags, editing, per-section rewrite, stale detection and provenance.
 import * as core from '../../../core/index.js';
 import { SECTIONS } from '../../../core/soap/schema.js';
@@ -8,7 +9,7 @@ import { t, tn, getLang, onLangChange, applyI18n } from '../i18n.js';
 import { cloneTemplate, confirmDialog, toast, announce } from '../ui.js';
 import { showPane } from '../app-ui.js';
 import { buildSource } from './transcript.js';
-import { fromEngineNote, itemsFromEngine, toEngineNote, annotate, openFlagCount, newStatementId } from './note.js';
+import { fromEngineNote, itemsFromEngine, toEngineNote, annotate, applyProvenance, openFlagCount, newStatementId } from './note.js';
 import { describeError, AppError } from './messages.js';
 import { exampleData } from './example.js';
 import { templateLabel, languageLabel, providerLabel, formatDateTime } from './format.js';
@@ -50,7 +51,7 @@ export function initNote(ctx) {
     const { note, positions } = toEngineNote(session.note, language);
     const { text, ranges } = source();
     engineNote = note;
-    verification = core.verifyNote(note, text);
+    verification = applyProvenance(session.note, core.verifyNote(note, text), positions);
     view = annotate(session.note, verification, positions, ranges);
   }
 
@@ -84,11 +85,28 @@ export function initNote(ctx) {
     ul.dataset.empty = (LANGUAGES[session.meta?.language] || LANGUAGES.en).notDocumented;
   }
 
+  // Short label, long label and icon of the review chip for each status that is not plainly grounded.
+  const STATUS_CHIP = {
+    unverified: ['note.unverified', 'note.unverifiedLong', 'i-unverified'],
+    approximate: ['note.approximate', 'note.approximateLong', 'i-alert'],
+    edited: ['note.edited', 'note.editedLong', 'i-edit'],
+    clinician: ['note.clinician', 'note.clinicianLong', 'i-user'],
+  };
+
   function renderMarks() {
     const info = turnInfo();
     for (const li of $$('.statement', sheet)) {
       const result = view?.statements.get(li.dataset.statementId) || { status: 'none', turnIds: [], numberIssues: [] };
       li.dataset.grounding = result.status;
+      const [short, long, icon] = STATUS_CHIP[result.status] || STATUS_CHIP.unverified;
+      const review = $('.ev-chip--unverified', li);
+      $('use', review)?.setAttribute('href', `/assets/icons/sprite.svg#${icon}`);
+      const label = $('[data-i18n]', review);
+      // Keep the i18n hooks in step so a language switch re-renders the right words.
+      label.dataset.i18n = short;
+      label.textContent = t(short);
+      review.dataset.i18nAttr = `aria-label:${long}`;
+      review.setAttribute('aria-label', t(long)); // the tooltip falls back to the aria-label
       li.dataset.evidence = result.turnIds.join(' ');
       const chip = $('button.ev-chip', li);
       chip.dataset.evidence = li.dataset.evidence;
@@ -145,8 +163,10 @@ export function initNote(ctx) {
   function renderFooter() {
     const { session } = store.getState();
     if (!session.note) return;
-    const summary = view?.summary || { statements: 0, grounded: 0, unverified: 0 };
-    $('#note-stats').textContent = t('app.note.stats', { statements: tn('app.count.statements', summary.statements), linked: summary.grounded, unverified: summary.unverified });
+    const summary = view?.summary || { statements: 0, grounded: 0, approximate: 0, unverified: 0, edited: 0 };
+    // "To check": every AI line that is not grounded (unverified, close match or edited).
+    const toCheck = summary.unverified + summary.approximate + summary.edited;
+    $('#note-stats').textContent = t('app.note.stats', { statements: tn('app.count.statements', summary.statements), linked: summary.grounded, unverified: toCheck });
     const meta = session.meta;
     if (meta?.provider === 'example') $('#note-provenance').textContent = t('app.note.provenanceExample');
     else if (meta) {

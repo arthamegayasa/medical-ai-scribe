@@ -13,6 +13,7 @@ import { launch, openPage } from './cdp.js';
 import { startMockProvider } from './mock-provider.js';
 import { writeSpeechLikeWav } from './wav.js';
 import { makeServer } from '../dev-server.js';
+import { buildSite } from '../lib/build.js';
 
 const argv = Object.fromEntries(process.argv.slice(2).map((arg) => { const [k, v = 'true'] = arg.replace(/^--/, '').split('='); return [k, v]; }));
 const SHOTS = argv.shots || process.env.E2E_SHOTS || '';
@@ -34,9 +35,11 @@ function listen(server) {
 
 const mock = await startMockProvider();
 // A clean environment: provider keys from the developer's shell must not switch on server mode.
-const appServer = makeServer({ env: { NODE_ENV: 'test' } });
+// `testHooks` makes the workspace expose `window.__scribe.store` for assertions. The static-host
+// server below has no hooks, like production, and checks that the store stays private there.
+const appServer = makeServer({ env: { NODE_ENV: 'test' }, testHooks: true });
 const appBase = await listen(appServer);
-const serverModeServer = makeServer({ env: {
+const serverModeServer = makeServer({ testHooks: true, env: {
   NODE_ENV: 'test', COMPATIBLE_BASE_URL: mock.url, COMPATIBLE_API_KEY: 'mock-server-key', COMPATIBLE_MODEL: 'mock-note-mini',
   TRANSCRIPTION_BASE_URL: mock.url, TRANSCRIPTION_API_KEY: 'mock-server-key', TRANSCRIPTION_MODEL: 'whisper-mock', SCRIBE_ACCESS_TOKEN: 'e2e-access-token',
 } });
@@ -119,6 +122,11 @@ const state = (page) => page.eval(() => {
   const s = window.__scribe.store.getState();
   return { capture: s.capture.state, note: s.noteState.state, turns: s.session.turns.length, labels: s.session.labels, mode: s.mode, selection: s.prefs.selection, connections: s.connections.length };
 });
+const dbCount = (page) => page.eval(() => new Promise((r) => {
+  const q = indexedDB.open('scribe-history');
+  q.onsuccess = () => { const db = q.result; if (!db.objectStoreNames.contains('sessions')) { db.close(); r(0); return; } const c = db.transaction('sessions').objectStore('sessions').count(); c.onsuccess = () => { db.close(); r(c.result); }; };
+  q.onerror = () => r(-1);
+}));
 const text = (page, selector) => page.eval((sel) => document.querySelector(sel)?.textContent?.trim() || '', selector);
 const visible = (page, selector) => page.eval((sel) => { const el = document.querySelector(sel); return Boolean(el && el.offsetParent !== null && !el.closest('[hidden]')); }, selector);
 
@@ -357,6 +365,7 @@ await scenario('byok-flow', async (env) => {
   eq(await page.eval(() => document.getElementById('connection-chip').dataset.state), 'ok', 'chip after connecting');
 
   await pasteTranscript(page);
+  eq(await page.eval(() => [...document.querySelectorAll('#quick-note-language option')].map((o) => o.value).join(',')), 'en,id,es,fr,de,pt', 'every engine note language is offered');
   const turns = await page.eval(() => [...document.querySelectorAll('#turns .turn')].map((t) => t.dataset.speaker));
   eq(turns.join(','), 'doctor,patient,patient,doctor,doctor', 'pasted labels become turns');
 
@@ -399,10 +408,14 @@ await scenario('byok-flow', async (env) => {
   await page.eval(() => { const el = document.querySelector('[data-statements="plan"] .statement__text'); const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r); });
   await page.type(null, ' Ibuprofen 900 mg if needed.', { clear: false });
   await page.waitFor(() => document.querySelector('[data-statements="plan"] .ev-chip--number'), { what: 'check-number chip after editing' });
+  const edited = await page.eval(() => { const li = document.querySelector('[data-statements="plan"] .statement'); return { grounding: li.dataset.grounding, chip: li.querySelector('.ev-chip--unverified').textContent.trim() }; });
+  eq(edited.grounding, 'edited', 'an edited line is no longer grounded');
+  eq(edited.chip, 'Edited', 'edited chip label');
   // Add and remove a line.
   await page.click('[data-section="assessment"] [data-action="add-statement"]');
   await page.type(null, 'Clinician note added by hand.', { clear: false });
   await page.waitFor(() => document.querySelectorAll('[data-statements="assessment"] .statement').length === 1);
+  await page.waitFor(() => document.querySelector('[data-statements="assessment"] .statement')?.dataset.grounding === 'clinician', { what: 'typed line reads as clinician-entered' });
   await page.click('[data-statements="assessment"] [data-action="remove-statement"]');
   await page.waitFor(() => document.querySelectorAll('[data-statements="assessment"] .statement').length === 0);
 
@@ -644,8 +657,20 @@ await scenario('history', async (env) => {
   await page.waitFor(() => document.getElementById('storage-sessions').textContent === '1', { what: 'session saved after opt-in' });
   await page.eval(() => { const s = document.getElementById('pref-autodelete'); s.value = '30'; s.dispatchEvent(new Event('change', { bubbles: true })); });
   await closeDialogs(page);
+  // An expired session is purged at start-up, before the drawer is ever opened.
+  await page.eval(() => new Promise((resolve) => {
+    const q = indexedDB.open('scribe-history');
+    q.onsuccess = () => {
+      const tx = q.result.transaction('sessions', 'readwrite');
+      tx.objectStore('sessions').put({ id: 'hexpired', title: 'Expired fictional session', createdAt: '2000-01-01T00:00:00.000Z', updatedAt: '2000-01-01T00:00:00.000Z', turns: [], note: null });
+      tx.oncomplete = () => { q.result.close(); resolve(); };
+    };
+  }));
+  eq(await dbCount(page), 2, 'expired record planted');
   await page.reload();
   await app(page);
+  await page.waitFor(async () => (await new Promise((r) => { const q = indexedDB.open('scribe-history'); q.onsuccess = () => { const c = q.result.transaction('sessions').objectStore('sessions').count(); c.onsuccess = () => { q.result.close(); r(c.result); }; }; })) === 1, { what: 'expired session purged at start-up' });
+  eq(await page.eval(() => document.getElementById('history-drawer').open), false, 'purged without opening the drawer');
   await page.press('h');
   await page.waitFor(() => document.getElementById('history-drawer').dataset.state === 'list', { what: 'history list after reload' });
   const rows = await page.eval(() => [...document.querySelectorAll('#history-list .history-item')].map((li) => li.querySelector('.history-item__title').textContent));
@@ -659,6 +684,36 @@ await scenario('history', async (env) => {
   await page.waitFor(() => window.__scribe.store.getState().noteState.state === 'ready' && document.querySelectorAll('#turns .turn').length === 5, { what: 'session reopened' });
   const record = await page.eval(() => new Promise((r) => { const q = indexedDB.open('scribe-history'); q.onsuccess = () => { const g = q.result.transaction('sessions').objectStore('sessions').getAll(); g.onsuccess = () => r(JSON.stringify(g.result)); }; }));
   assert(!record.includes('mock-key'), 'history never stores keys');
+  // "Delete" on the open session sticks: an edit schedules a save (debounced), the delete cancels
+  // it, and neither the timer nor a reload brings the session back.
+  await page.focus('[data-statements="plan"] .statement__text');
+  await page.type(null, ' Edited before deleting.', { clear: false });
+  await page.click('#btn-history');
+  await page.waitFor(() => document.querySelector('#history-list .history-item.is-current'), { what: 'current session row' });
+  await page.click('#history-list .history-item.is-current [data-action="delete-session"]');
+  await page.waitFor(() => document.getElementById('confirm-dialog').open);
+  await page.click('#confirm-ok');
+  await page.waitFor(() => document.getElementById('history-drawer').dataset.state === 'empty', { what: 'open session deleted' });
+  await sleep(1500);
+  eq(await dbCount(page), 0, 'no re-save after the debounce');
+  await closeDialogs(page);
+  await page.eval(() => document.querySelector('#flags-list .flag__resolve')?.click());
+  await sleep(1200);
+  eq(await dbCount(page), 1, 'a new change saves the session again');
+  await page.click('#btn-history');
+  await page.waitFor(() => document.querySelector('#history-list .history-item.is-current'), { what: 'current session row again' });
+  await page.click('#history-list .history-item.is-current [data-action="delete-session"]');
+  await page.waitFor(() => document.getElementById('confirm-dialog').open);
+  await page.click('#confirm-ok');
+  await page.waitFor(() => document.getElementById('history-drawer').dataset.state === 'empty');
+  await closeDialogs(page);
+  await page.reload();
+  await app(page);
+  await sleep(1000);
+  eq(await dbCount(page), 0, 'the deleted open session does not reappear after reloading');
+  // Re-create one session for the delete-all path below.
+  await pasteTranscript(page);
+  await page.waitFor(async () => (await new Promise((r) => { const q = indexedDB.open('scribe-history'); q.onsuccess = () => { const c = q.result.transaction('sessions').objectStore('sessions').count(); c.onsuccess = () => { q.result.close(); r(c.result); }; }; })) === 1, { what: 'session saved again' });
   await page.click('#btn-history');
   await page.waitFor(() => document.getElementById('history-drawer').open);
   await page.click('#btn-history-delete-all');
@@ -784,11 +839,31 @@ await scenario('static-host', async (env) => {
   const page = await env.page(`${staticBase}/app/`, { allowNetwork: [`${staticBase}/api/config`] });
   await app(page);
   await page.waitFor(() => document.getElementById('onboarding-dialog').open, { what: 'BYOK onboarding without an API' });
-  eq((await state(page)).mode, 'byok', 'browser-direct mode without /api');
+  eq(await page.eval(() => typeof window.__scribe), 'undefined', 'no store hook without the test flag (as in production)');
+  eq(await page.eval(() => document.getElementById('connection-chip').dataset.state), 'none', 'browser-direct mode without /api');
   await page.click('#ob-skip');
   eq(await page.eval(() => document.querySelectorAll('.toast[data-tone="error"]').length), 0, 'no error about the missing API');
   await page.click('#btn-empty-example');
-  await page.waitFor(() => window.__scribe.store.getState().noteState.state === 'ready');
+  await page.waitFor(() => document.getElementById('note').dataset.state === 'ready', { what: 'example draft' });
+});
+
+await scenario('production-build', async (env) => {
+  // The built site (what Vercel serves) has no design-review harness and no test hooks: ?demo=
+  // falls back to the normal workspace instead of leaving a dead page.
+  const output = join(TMP, 'public');
+  await buildSite({ output });
+  assert(!existsSync(join(output, 'assets', 'js', 'demo-states.js')), 'demo harness is not built');
+  const built = makeServer({ webRoot: output, env: {} });
+  const builtBase = await listen(built);
+  try {
+    const page = await env.page(`${builtBase}/app/?demo=note`, { allowNetwork: [`${builtBase}/assets/js/demo-states.js`] });
+    await app(page);
+    eq(await page.eval(() => document.documentElement.dataset.demo), undefined, 'no demo state');
+    eq(await page.eval(() => typeof window.__scribe), 'undefined', 'no store hook in the built site');
+    assert(await page.eval(() => document.getElementById('onboarding-dialog').open), 'the normal workspace starts');
+  } finally {
+    await new Promise((resolve) => { built.closeAllConnections?.(); built.close(resolve); });
+  }
 });
 
 await scenario('server-mode', async (env) => {

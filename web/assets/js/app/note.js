@@ -1,6 +1,7 @@
 // The editable note in app state, and how it maps to the engine's note shape and verifier.
 import { SECTIONS, NOTE_LIMITS } from '../../../core/soap/schema.js';
 import { LANGUAGES } from '../../../core/soap/prompt.js';
+import { summarizeVerification } from '../../../core/soap/evidence.js';
 import { turnIdsForSpan, spanPiecesByTurn } from './transcript.js';
 
 let counter = 0;
@@ -11,18 +12,25 @@ export function newStatementId(prefix = 's') {
 
 const NOT_DOCUMENTED = new Set(Object.values(LANGUAGES).map((language) => language.notDocumented));
 
+// Statement provenance (see docs/adr/0003-evidence-linked-statements.md):
+// - origin 'model': written by the note model. `verifiedText` is the text its evidence was checked
+//   for. Once the text differs (beyond whitespace) the line is 'edited', never 'grounded'.
+// - origin 'clinician': typed by the clinician. It has no evidence and reads as clinician-entered.
+const collapse = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
+const modelItem = (item, makeId) => ({ id: makeId('s'), text: item.text, evidence: [...item.evidence], origin: 'model', verifiedText: collapse(item.text) });
+
 /** Engine note `{ section: [{text, evidence}], review_flags }` -> app note with stable ids. */
 export function fromEngineNote(note, makeId = newStatementId) {
   const sections = Object.fromEntries(SECTIONS.map((key) => [key, (note[key] || [])
     .filter((item) => !(item.evidence.length === 0 && NOT_DOCUMENTED.has(item.text)))
-    .map((item) => ({ id: makeId('s'), text: item.text, evidence: [...item.evidence] }))]));
+    .map((item) => modelItem(item, makeId))]));
   const flags = (note.review_flags || []).map((flag) => ({ id: makeId('f'), type: flag.type, text: flag.text, evidence: [...flag.evidence], resolved: false }));
   return { sections, flags };
 }
 
 /** Section items from a regenerated section, with ids. */
 export function itemsFromEngine(items, makeId = newStatementId) {
-  return items.filter((item) => !(item.evidence.length === 0 && NOT_DOCUMENTED.has(item.text))).map((item) => ({ id: makeId('s'), text: item.text, evidence: [...item.evidence] }));
+  return items.filter((item) => !(item.evidence.length === 0 && NOT_DOCUMENTED.has(item.text))).map((item) => modelItem(item, makeId));
 }
 
 /**
@@ -49,13 +57,39 @@ export function toEngineNote(note, language = 'en') {
   return { note: engine, positions };
 }
 
+/** The status a statement's provenance allows: 'clinician', 'edited', or null (use the verifier's). */
+export function provenanceStatus(item) {
+  if (item.origin === 'clinician') return 'clinician';
+  return collapse(item.text) === item.verifiedText ? null : 'edited';
+}
+
+/**
+ * Applies statement provenance to an engine verification: clinician-entered lines become
+ * 'clinician' and model lines whose text changed since verification become 'edited' (quotes and
+ * number checks are kept). Returns a new verification with a recomputed summary; exports and the
+ * UI both use it, so they always agree.
+ */
+export function applyProvenance(note, verification, positions) {
+  const sections = Object.fromEntries(SECTIONS.map((key) => [key, [...verification.sections[key]]]));
+  for (const key of SECTIONS) {
+    for (const item of note.sections[key] || []) {
+      const at = positions.get(item.id);
+      const status = at && provenanceStatus(item);
+      if (status) sections[at[0]][at[1]] = { ...sections[at[0]][at[1]], status };
+    }
+  }
+  return { ...verification, sections, summary: summarizeVerification(sections) };
+}
+
+const VIEW_STATUS = { grounded: 'grounded', approximate: 'approximate', edited: 'edited', clinician: 'clinician', unverified: 'unverified' };
+
 function resultView(result, ranges) {
   if (!result) return { status: 'none', turnIds: [], pieces: [], numberIssues: [] };
   const found = result.quotes.filter((quote) => quote.found);
   const turnIds = [...new Set(found.flatMap((quote) => turnIdsForSpan(ranges, quote.start, quote.end)))];
   const pieces = found.flatMap((quote) => spanPiecesByTurn(ranges, quote.start, quote.end));
   return {
-    status: result.status === 'grounded' ? 'grounded' : result.status === 'not_documented' ? 'none' : 'unverified',
+    status: VIEW_STATUS[result.status] || (result.status === 'not_documented' ? 'none' : 'unverified'),
     turnIds,
     pieces,
     numberIssues: result.numbers.filter((n) => !n.found).map((n) => n.text),
@@ -87,15 +121,12 @@ export function annotate(note, verification, positions, ranges) {
     }
     flags.set(flag.id, { ...view, target });
   });
-  let grounded = 0;
-  let unverified = 0;
-  let count = 0;
+  const summary = { statements: 0, grounded: 0, approximate: 0, unverified: 0, edited: 0, clinician: 0 };
   for (const view of statements.values()) {
-    count += 1;
-    if (view.status === 'grounded') grounded += 1;
-    if (view.status === 'unverified') unverified += 1;
+    summary.statements += 1;
+    if (view.status in summary) summary[view.status] += 1;
   }
-  return { statements, flags, summary: { statements: count, grounded, unverified } };
+  return { statements, flags, summary };
 }
 
 export const openFlagCount = (note) => (note?.flags || []).filter((flag) => !flag.resolved).length;

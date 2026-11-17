@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { safeStorage, memoryStorage } from '../web/assets/js/app/storage.js';
 import { createVault, LIST_KEY, KEY_PREFIX, sanitizeRecord, describeRecord } from '../web/assets/js/app/connections.js';
-import { createMemoryHistory, isExpired, purgeExpired, toRecord, fromRecord, matchesQuery, sessionTitle } from '../web/assets/js/app/history.js';
+import { createMemoryHistory, isExpired, purgeExpired, toRecord, fromRecord, matchesQuery, sessionTitle, createHistorySaver, createRetention } from '../web/assets/js/app/history.js';
 import { emptySession } from '../web/assets/js/app/store.js';
 
 const stores = () => {
@@ -117,4 +117,112 @@ test('history records keep encounter content only, round-trip into a session and
   assert.equal(matchesQuery(record, 'HEADACHE'), true);
   assert.equal(matchesQuery(record, 'migraine'), false);
   assert.equal(sessionTitle({ turns: [{ text: 'x'.repeat(200) }] }).length, 90);
+});
+
+test('history keeps statement provenance; records saved before it existed fail safe as edited', () => {
+  const session = {
+    ...emptySession(), createdAt: '2026-11-17T10:00:00.000Z', source: 'paste', labels: 'source',
+    turns: [{ id: 't1', speaker: 'patient', text: 'Headache for three days.', start: null, end: null }],
+    note: { sections: { chief_complaint: [{ id: 's1', text: 'Headache, three days.', evidence: ['headache for three days'], origin: 'model', verifiedText: 'Headache for three days.' }], subjective: [{ id: 's2', text: 'Typed.', evidence: [], origin: 'clinician' }], objective: [], assessment: [], plan: [] }, flags: [] },
+    meta: { provider: 'custom', model: 'm', template: 'general', language: 'en', transcriptHash: 'h' },
+  };
+  const back = fromRecord(toRecord(session, { id: 'h1' }));
+  assert.deepEqual(back.note.sections.chief_complaint[0], session.note.sections.chief_complaint[0]);
+  assert.deepEqual(back.note.sections.subjective[0], session.note.sections.subjective[0]);
+  const legacy = fromRecord({ ...toRecord(session, { id: 'h2' }), note: { sections: { chief_complaint: [{ id: 'x', text: 'Old line.', evidence: ['headache'] }], subjective: [], objective: [], assessment: [], plan: [] }, flags: [] } });
+  assert.equal(legacy.note.sections.chief_complaint[0].origin, 'model');
+  assert.equal(legacy.note.sections.chief_complaint[0].verifiedText, undefined, 'unknown verified text: shown as edited until regenerated');
+});
+
+// ---------- Saving controller and retention ----------
+function fakeTimers() {
+  let now = 0;
+  let next = 1;
+  const pending = new Map();
+  return {
+    setTimeout(fn, ms) { const id = next++; pending.set(id, { fn, at: now + ms }); return id; },
+    clearTimeout(id) { pending.delete(id); },
+    setInterval(fn, ms) { const id = next++; const tick = () => { pending.set(id, { fn: () => { fn(); tick(); }, at: now + ms }); }; tick(); return id; },
+    clearInterval(id) { pending.delete(id); },
+    async advance(ms) {
+      now += ms;
+      for (;;) {
+        const due = [...pending.entries()].filter(([, t]) => t.at <= now).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!due) break;
+        pending.delete(due[0]);
+        due[1].fn();
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+    },
+  };
+}
+
+const savedSession = (id = null) => ({ ...emptySession(id), createdAt: '2026-11-17T10:00:00.000Z', turns: [{ id: 't1', speaker: 'patient', text: 'Headache.', start: null, end: null }] });
+
+test('deleting the open session cancels its scheduled save, waits for a running one, and nothing re-saves it until a new change', async () => {
+  const timers = fakeTimers();
+  const history = createMemoryHistory();
+  let release;
+  const slowPut = history.put;
+  let session = savedSession();
+  const saved = [];
+  const saver = createHistorySaver({ history, getSession: () => session, canSave: () => true, onSaved: (id) => { saved.push(id); session = { ...session, id }; }, timers, delayMs: 700 });
+  // A scheduled (debounced) save is cancelled by the delete.
+  saver.schedule();
+  await saver.remove('whatever', { current: true });
+  await timers.advance(1000);
+  assert.equal(await history.count(), 0, 'scheduled save cancelled');
+  saver.schedule();
+  await timers.advance(1000);
+  assert.equal(await history.count(), 0, 'no re-save without a new change');
+  // A new change re-enables saving.
+  saver.changed();
+  await timers.advance(1000);
+  assert.equal(await history.count(), 1);
+  const id = saved.at(-1);
+  // A running save finishes before the delete, so the record cannot reappear afterwards.
+  history.put = (record) => new Promise((resolve) => { release = () => resolve(slowPut(record)); });
+  const running = saver.save();
+  const removal = saver.remove(id, { current: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  release();
+  await running;
+  await removal;
+  history.put = slowPut;
+  assert.equal(await history.count(), 0, 'in-flight save did not resurrect the deleted session');
+  saver.schedule();
+  await timers.advance(1000);
+  assert.equal(await history.count(), 0);
+  // Delete all behaves the same; a new or loaded session releases the hold.
+  saver.changed();
+  await timers.advance(1000);
+  assert.equal(await history.count(), 1);
+  saver.schedule();
+  await saver.removeAll();
+  await timers.advance(1000);
+  assert.equal(await history.count(), 0);
+  saver.release();
+  saver.schedule();
+  await timers.advance(1000);
+  assert.equal(await history.count(), 1);
+});
+
+test('expired sessions are purged at start-up before any count, and periodically while the app stays open', async () => {
+  const timers = fakeTimers();
+  const history = createMemoryHistory();
+  const day = 864e5;
+  let now = Date.parse('2026-11-17T12:00:00Z');
+  await history.put({ id: 'old', updatedAt: new Date(now - 8 * day).toISOString() });
+  await history.put({ id: 'fresh', updatedAt: new Date(now - 6.9 * day).toISOString() });
+  const retention = createRetention({ history, getDays: () => 7, now: () => now, timers, intervalMs: 60 * 60 * 1000 });
+  const early = retention.count(); // asked before the store finished opening
+  await retention.start();
+  assert.equal(await early, 1, 'even a count requested before start-up excludes expired sessions');
+  assert.equal(await retention.count(), 1);
+  assert.deepEqual((await history.list()).map((r) => r.id), ['fresh']);
+  now += 0.2 * day;
+  await timers.advance(60 * 60 * 1000);
+  await retention.ready();
+  assert.equal(await history.count(), 0, 'purged again while the app stays open');
+  retention.stop();
 });

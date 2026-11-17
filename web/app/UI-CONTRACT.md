@@ -22,7 +22,7 @@ web/assets/js/strings/id.js    Bahasa Indonesia (same keys, same {placeholders})
 web/assets/js/ui.js            dialog, confirm, toast, tooltip, tabs, menu, shortcuts, announce, cloneTemplate
 web/assets/js/app-ui.js        workspace boot; presentational behaviour; exports helpers listed below
 web/assets/js/landing.js       landing behaviour (nav, theme, specimen animation)
-web/assets/js/demo-states.js   design-review harness, loaded only with ?demo=
+web/assets/js/demo-states.js   design-review harness, loaded only with ?demo= (local development only)
 web/assets/icons/sprite.svg    icon sprite: <svg class="icon"><use href="/assets/icons/sprite.svg#i-NAME"/></svg>
 web/assets/fonts/              Source Serif 4 + Atkinson Hyperlegible Next (WOFF2, latin) + OFL licence texts
 web/assets/img/                favicon (svg/png), app icons, maskable icon, og-image.svg/.png
@@ -48,7 +48,7 @@ import { t, tn, getLang, setLang, onLangChange, applyI18n } from '/assets/js/i18
 import { getTheme, setTheme, toggleTheme, resolvedTheme, onThemeChange } from '/assets/js/theme.js';
 ```
 
-The wiring is `web/assets/js/app/main.js`, loaded as a second module tag after `app-ui.js`. It keeps all state in one store (`app/store.js`, pure reducer) and sets `html[data-app="ready"]` once server-mode detection has finished. With `?demo=` in the URL the wiring stays idle so the design harness can render its states.
+The wiring is `web/assets/js/app/main.js`, loaded as a second module tag after `app-ui.js`. It keeps all state in one store (`app/store.js`, pure reducer) and sets `html[data-app="ready"]` once server-mode detection has finished. With `?demo=` in the URL the wiring stays idle so the design harness can render its states. The harness is served only in local development (`lib/publish.js` keeps it out of the production build); when it cannot be loaded, `app-ui.js` sets `html[data-demo-harness="missing"]`, fires `ui:demo-unavailable`, and the wiring starts normally.
 
 Events the UI emits (all bubble; `detail` shown):
 
@@ -115,7 +115,7 @@ When a transcript exists, hide `#capture` (`hidden`) and show `#transcript`; set
 - Find (`#btn-find`, Ctrl/Cmd+F) is implemented by the UI. It wraps hits in `<mark class="find-hit">` temporarily and removes them on close or on edit; `textContent` is unaffected.
 - Meta: `#transcript-chars` (`tn('app.count.chars', n)`), `#transcript-duration` (`t('app.transcript.duration', {d})`, remove `hidden`), `#transcript-turn-count` (`tn('app.count.turns', n)`).
 - Menu items: `#btn-add-turn`, `#btn-copy-transcript`, `#btn-edit-vocab` (opens settings), `#btn-clear-transcript`.
-- Generate: `#btn-generate` (Ctrl/Cmd+Enter clicks it), `#quick-template`, `#quick-note-language`. All `select[data-template-select]` and `select[data-note-language-select]` should be kept in sync with the defaults.
+- Generate: `#btn-generate` (Ctrl/Cmd+Enter clicks it), `#quick-template`, `#quick-note-language`. All `select[data-template-select]` and `select[data-note-language-select]` should be kept in sync with the defaults. The note-language selects are empty in the markup; the wiring fills them with every engine language (`LANGUAGES`), labelled `app.lang.<code>`.
 
 ## Note pane `#note`
 
@@ -135,7 +135,7 @@ When a transcript exists, hide `#capture` (`hidden`) and show `#transcript`; set
 | `#note-stats` | `t('app.note.stats', { statements: tn('app.count.statements', n), linked, unverified })` |
 | `#note-provenance` | `t('app.note.provenance', {time, model, provider, template, language})` |
 
-Statement row (`#tpl-statement`): set `li[data-statement-id]`, `li[data-grounding]` = `grounded | unverified | none`, `li[data-evidence]` = space-separated turn ids (`"t2 t3"`), the chip's `data-evidence` (same), `.ev-chip__refs` text = display numbers (`"2, 3"`), optional chip `data-tooltip` (e.g. `"Patient, 2"`), `.statement__text` text (contenteditable plaintext-only). The UI then handles hover/focus highlighting of the source turns, chip click (scroll + flash, and on phones switches to the transcript with a "Back to draft" toast), and screen-reader announcement. Use `revealEvidence(li)` / `revealStatement(id)` programmatically.
+Statement row (`#tpl-statement`): set `li[data-statement-id]`, `li[data-grounding]` = `grounded | approximate | edited | clinician | unverified | none` (approximate and edited show both the link chip and the review chip; clinician shows only the review chip in a neutral style; the wiring sets the review chip's label, `aria-label` and icon per status from `note.<status>` / `note.<status>Long`), `li[data-evidence]` = space-separated turn ids (`"t2 t3"`), the chip's `data-evidence` (same), `.ev-chip__refs` text = display numbers (`"2, 3"`), optional chip `data-tooltip` (e.g. `"Patient, 2"`), `.statement__text` text (contenteditable plaintext-only). The UI then handles hover/focus highlighting of the source turns, chip click (scroll + flash, and on phones switches to the transcript with a "Back to draft" toast), and screen-reader announcement. Use `revealEvidence(li)` / `revealStatement(id)` programmatically.
 
 ## Dialogs
 

@@ -2,7 +2,7 @@
 import { t, onLangChange, setLang } from '../i18n.js';
 import { setTheme } from '../theme.js';
 import { confirmDialog, toast } from '../ui.js';
-import { TEMPLATE_KEYS } from './format.js';
+import { TEMPLATE_KEYS, noteLanguageOptions } from './format.js';
 import { describeError } from './messages.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -18,6 +18,18 @@ export function initPreferences(ctx) {
       const value = store.getState().prefs.template;
       select.replaceChildren(...Object.entries(TEMPLATE_KEYS).map(([id, key]) => {
         const option = new Option(t(key), id, false, id === value);
+        option.dataset.i18n = key;
+        return option;
+      }));
+      select.value = value;
+    }
+  }
+  // Every engine note language (prefs.js NOTE_LANGUAGES); the markup carries no second list.
+  function renderNoteLanguageOptions() {
+    for (const select of $$('select[data-note-language-select]')) {
+      const value = store.getState().prefs.noteLanguage;
+      select.replaceChildren(...noteLanguageOptions().map(({ value: code, key }) => {
+        const option = new Option(t(key), code, false, code === value);
         option.dataset.i18n = key;
         return option;
       }));
@@ -84,6 +96,8 @@ export function initPreferences(ctx) {
     const ok = await confirmDialog({ title: t('app.confirm.deleteAll.title'), message: t('app.confirm.deleteAll.message'), confirmLabel: t('app.confirm.deleteAll.ok'), tone: 'danger' });
     if (!ok) return;
     ctx.cancelAll?.();
+    // A scheduled or running save must not recreate the database after it is destroyed.
+    await ctx.historyView.settle().catch(() => {});
     try { await ctx.history.destroy?.(); } catch { /* nothing stored */ }
     vault.clearAll();
     for (const store_ of [local, session]) for (const key of store_.keys('scribe.')) store_.remove(key);
@@ -138,8 +152,9 @@ export function initPreferences(ctx) {
     if (state.connections !== previous.connections) refreshStorageSummary();
   });
   document.getElementById('settings-dialog').addEventListener('ui:opened', refreshStorageSummary);
-  onLangChange(() => { renderTemplateOptions(); syncDefaults(); });
+  onLangChange(() => { renderTemplateOptions(); renderNoteLanguageOptions(); syncDefaults(); });
   renderTemplateOptions();
+  renderNoteLanguageOptions();
   syncDefaults();
   syncPrivacy();
   syncAccess();

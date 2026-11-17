@@ -2,7 +2,7 @@
 // nothing about the encounter is written anywhere.
 import { t, getLang, onLangChange, applyI18n } from '../i18n.js';
 import { cloneTemplate, confirmDialog, toast, closeDialog, announce } from '../ui.js';
-import { toRecord, fromRecord, purgeExpired, newSessionId } from './history.js';
+import { fromRecord, createHistorySaver, createRetention } from './history.js';
 import { templateLabel, formatDuration, formatDateTime } from './format.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -10,21 +10,21 @@ const $ = (sel, root = document) => root.querySelector(sel);
 export function initHistory(ctx) {
   const { store, history } = ctx;
   const drawer = $('#history-drawer');
-  let saveTimer = 0;
-  let saving = Promise.resolve();
   let announcedFor = null;
   let records = [];
 
   const enabled = () => store.getState().prefs.history && store.getState().historyAvailable;
   const worthSaving = (session) => !session.fictional && session.turns.some((turn) => String(turn.text).trim());
 
-  async function saveNow() {
-    clearTimeout(saveTimer);
-    const { session } = store.getState();
-    if (!enabled() || !worthSaving(session)) return;
-    const id = session.id || newSessionId();
-    const record = toRecord(session, { id });
-    saving = saving.then(() => history.put(record)).then(() => {
+  // Auto-delete runs at start-up (main.js calls start() once the store opens), every 15 minutes
+  // while the app is open, and before the drawer lists sessions.
+  const retention = createRetention({ history, getDays: () => store.getState().prefs.autoDeleteDays });
+
+  const saver = createHistorySaver({
+    history,
+    getSession: () => store.getState().session,
+    canSave: (session) => enabled() && worthSaving(session),
+    onSaved: (id, session) => {
       const current = store.getState().session;
       if (!current.id && current.createdAt === session.createdAt) store.dispatch({ type: 'session/saved', id });
       if (announcedFor !== id) {
@@ -33,15 +33,14 @@ export function initHistory(ctx) {
       }
       ctx.refreshStorageSummary?.();
       if (drawer.open) refresh();
-    }).catch(() => {
-      toast(t('app.err.storage'), { tone: 'error' });
-    });
-    return saving;
-  }
+    },
+    onError: () => toast(t('app.err.storage'), { tone: 'error' }),
+  });
 
-  function scheduleSave() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveNow, 700);
+  /** Saves now (turning history on is a deliberate request to save this session). */
+  function saveNow() {
+    saver.release();
+    return saver.save();
   }
 
   async function refresh() {
@@ -51,7 +50,7 @@ export function initHistory(ctx) {
       return;
     }
     try {
-      await purgeExpired(history, state.prefs.autoDeleteDays);
+      await retention.purge();
       records = await history.list();
     } catch {
       records = [];
@@ -99,8 +98,11 @@ export function initHistory(ctx) {
   async function deleteSession(id) {
     const ok = await confirmDialog({ title: t('app.confirm.deleteSession.title'), message: t('app.confirm.deleteSession.message'), confirmLabel: t('common.delete'), tone: 'danger' });
     if (!ok) return;
-    await history.delete(id);
-    if (store.getState().session.id === id) store.dispatch({ type: 'session/saved', id: null });
+    const current = store.getState().session.id === id;
+    // Cancels a scheduled save and waits for a running one first, so the open session cannot
+    // reappear under a new id; it is saved again only after the user changes it.
+    await saver.remove(id, { current });
+    if (current && store.getState().session.id === id) store.dispatch({ type: 'session/saved', id: null });
     toast(t('app.toast.sessionDeleted'), { tone: 'success' });
     ctx.refreshStorageSummary?.();
     refresh();
@@ -111,7 +113,7 @@ export function initHistory(ctx) {
       const ok = await confirmDialog({ title: t('app.confirm.deleteHistory.title'), message: t('app.confirm.deleteHistory.message'), confirmLabel: t('app.confirm.deleteHistory.ok'), tone: 'danger' });
       if (!ok) return false;
     }
-    await history.clear().catch(() => {});
+    await saver.removeAll().catch(() => {});
     if (store.getState().session.id) store.dispatch({ type: 'session/saved', id: null });
     ctx.refreshStorageSummary?.();
     refresh();
@@ -131,15 +133,29 @@ export function initHistory(ctx) {
 
   // Save while history is on: after transcript, draft and edits (debounced).
   store.subscribe((state, previous, action) => {
+    // Another session: a hold left by deleting the previous one no longer applies.
+    if (action.type === 'session/new' || action.type === 'session/load' || action.type === 'reset/all') saver.release();
     if (!enabled()) return;
     // Opening a saved session must not refresh its date (that would postpone auto-delete).
     if (action.type === 'session/load' || action.type === 'session/saved') return;
     if (state.session !== previous.session && worthSaving(state.session)) {
       const settled = state.noteState.state !== 'generating' && !state.noteState.regenerating;
-      if (settled) scheduleSave();
-    } else if (state.noteState !== previous.noteState && state.noteState.state === 'ready' && worthSaving(state.session)) scheduleSave();
+      // A change to the session lifts the hold left by deleting it.
+      if (settled) saver.changed();
+    } else if (state.noteState !== previous.noteState && state.noteState.state === 'ready' && worthSaving(state.session)) saver.schedule();
   });
   onLangChange(() => { if (drawer.open) render(); });
 
-  return { refresh, saveNow, deleteAll, count: () => history.count().catch(() => 0) };
+  return {
+    refresh,
+    saveNow,
+    deleteAll,
+    /** Waits for scheduled and running saves (before the database is destroyed). */
+    settle: () => saver.settle(),
+    /** Purges expired sessions now and then periodically. Call once the store is open. */
+    start: () => retention.start(),
+    /** History storage is unavailable: nothing to purge, and counts must not wait. */
+    skip: () => retention.skip(),
+    count: () => retention.count().catch(() => 0),
+  };
 }

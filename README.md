@@ -68,11 +68,14 @@ This is the part of the design that matters most. A fluent draft is easy to trus
 
 1. **The model must cite.** The note model is asked for strict JSON in which every statement has `text` and `evidence`: one or more short quotes copied character for character from the transcript. The transcript is passed as untrusted data, so instructions inside it are not obeyed. Empty sections say "Not documented in this encounter." instead of being filled in.
 2. **The output is validated.** Exact keys, non-empty sections, bounded lengths. Output that fails is rejected with an error; it is never shown as a note.
-3. **Every quote is checked, deterministically.** In the browser, without another AI call, each quote is searched for in the transcript. Matching ignores case, accents, punctuation and spacing; quotes of three or more words may differ by about 15% of their words to tolerate small transcription differences.
+3. **Every quote is checked, deterministically.** In the browser, without another AI call, each quote is searched for in the transcript. Matching ignores case, accents, punctuation and spacing, but a quote may not run across a sentence break the transcript has, never starts or ends inside a word or number, and must be long and specific enough to be evidence.
 4. **Every statement gets a status.**
-   - **Grounded**: it has at least one quote and every quote was found. The link highlights the exact span in the transcript.
+   - **Grounded**: it has at least one quote and every quote matches the transcript exactly. The link highlights the exact span in the transcript.
+   - **Close match**: every quote was found, but at least one only approximately. A one-word difference can be a negation ("allergic" against "not allergic"), so check the wording against the highlighted passage.
+   - **Edited**: you changed the line after its source was checked. Re-check it against the transcript.
+   - **Clinician-entered**: a line you typed yourself.
    - **Unverified**: no quote, or a quote that is not in the transcript. Confirm it from your own knowledge of the encounter or delete it.
-   - **Check number**: any number in the statement, with its unit, that does not appear in the transcript. Decimal commas, thousands separators, unit synonyms and common English and Indonesian number words are understood.
+   - **Check number**: any number in the statement, with its unit, that does not appear in the transcript with the same value and unit. Numbers are compared as values (2.5 is not 25, 1,5 is not 15); decimal commas, thousands groupings, ratios, ranges, unit synonyms and English and Indonesian number words are understood.
 5. **Drift is tracked.** Edit the transcript after drafting and the note is marked as possibly out of date, including in exports, until you rewrite it.
 
 Grounded does not mean correct. A quote can be found and still be misread, taken out of context or attributed to the wrong speaker. The checks narrow what you have to look at; they do not replace reading the draft against the encounter.

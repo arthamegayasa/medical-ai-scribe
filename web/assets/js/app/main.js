@@ -53,8 +53,13 @@ async function detectServer(store) {
   }
 }
 
-function boot() {
-  if (params.has('demo')) return; // the design-review harness owns the page
+function boot({ demoUnavailable = false } = {}) {
+  // The design-review harness owns the page; if it is not there (production build), start normally.
+  // app-ui.js may have found it missing before this module ran, so check the marker too.
+  if (params.has('demo') && !demoUnavailable && document.documentElement.dataset.demoHarness !== 'missing') {
+    document.addEventListener('ui:demo-unavailable', () => boot({ demoUnavailable: true }), { once: true });
+    return;
+  }
   const missing = missingFeatures();
   if (missing.length) {
     $('#unsupported').hidden = false;
@@ -76,8 +81,9 @@ function boot() {
   }));
   const ctx = { store, vault, local, session, history, params };
   ctx.services = createServices({ store, vault });
-  // Debugging and end-to-end aid. State never holds provider keys (they stay in the vault).
-  window.__scribe = { store };
+  // End-to-end test hook. Only `npm run test:e2e` serves pages with this meta tag (dev-server.js
+  // `testHooks`); normal sessions and the published site never expose the store.
+  if (document.querySelector('meta[name="scribe-test-hooks"]')) window.__scribe = { store };
 
   // Preferences persist (they never contain encounter content or keys).
   store.subscribe((state, previous) => { if (state.prefs !== previous.prefs) local.setJSON(PREFS_KEY, state.prefs); });
@@ -187,8 +193,17 @@ function boot() {
   renderChip();
 
   // ---- Unsupported optional features ----
-  if (!history.available) store.dispatch({ type: 'history/available', available: false });
-  else history.open().catch(() => store.dispatch({ type: 'history/available', available: false }));
+  // Auto-delete expired sessions as soon as the store opens, before any count is shown (counts
+  // wait for this first purge), then periodically while the app stays open.
+  if (!history.available) {
+    store.dispatch({ type: 'history/available', available: false });
+    ctx.historyView.skip();
+  } else {
+    history.open().then(() => ctx.historyView.start(), () => {
+      store.dispatch({ type: 'history/available', available: false });
+      ctx.historyView.skip();
+    });
+  }
 
   // ---- Start: server mode, then first run or ?example=1 ----
   const onboarding = initOnboarding(ctx);

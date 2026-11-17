@@ -61,3 +61,12 @@ test('chunked labelling merges a turn that continues across a chunk boundary', a
   assert.equal(result.turns.length, 1);
   assert.deepEqual(progress, [{ completed: 1, total: 2 }, { completed: 2, total: 2 }]);
 });
+
+test('chunking never cuts inside a word, even when a word is longer than half a chunk or has no space nearby', () => {
+  const long = 'x'.repeat(25);
+  assert.deepEqual(splitForLabelling(`${long} tail`, 20), [long, 'tail'], 'a word longer than the chunk stays whole');
+  const text = `alpha ${'b'.repeat(15)}\tgamma delta`;
+  const chunks = splitForLabelling(text, 12);
+  assert.deepEqual(chunks.flatMap((c) => c.split(/\s+/)), text.split(/\s+/), 'no word is split or joined');
+  for (const word of text.split(/\s+/)) assert.ok(chunks.some((c) => c.split(/\s+/).includes(word)), `${word} survives whole`);
+});

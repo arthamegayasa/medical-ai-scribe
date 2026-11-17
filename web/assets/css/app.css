@@ -1356,19 +1356,33 @@ kbd.kbd--on-accent:first-of-type {
   flex: none;
 }
 
+/* Statuses: grounded (link chip), approximate and edited (link chip + review chip: the source is
+   shown but the wording needs checking), unverified (review chip), clinician (neutral chip). */
 .statement[data-grounding="grounded"] [data-unverified-only],
-.statement[data-grounding="unverified"] [data-grounded-only] {
+.statement[data-grounding="unverified"] [data-grounded-only],
+.statement[data-grounding="clinician"] [data-grounded-only] {
   display: none;
 }
 
-.statement[data-grounding="unverified"] .statement__text {
+.statement[data-grounding="unverified"] .statement__text,
+.statement[data-grounding="approximate"] .statement__text,
+.statement[data-grounding="edited"] .statement__text {
   text-decoration: underline dotted var(--review);
   text-decoration-thickness: 2px;
   text-underline-offset: 0.28em;
 }
 
-.statement[data-grounding="unverified"].is-active {
+.statement[data-grounding="unverified"].is-active,
+.statement[data-grounding="approximate"].is-active,
+.statement[data-grounding="edited"].is-active {
   background: var(--review-soft);
+}
+
+/* Written by the clinician: says who wrote it, not that a check failed. */
+.statement[data-grounding="clinician"] .ev-chip--unverified {
+  border-style: solid;
+  border-color: var(--accent-line);
+  color: var(--ink-3);
 }
 
 .statement[data-grounding="none"] [data-grounded-only],

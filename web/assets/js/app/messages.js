@@ -1,7 +1,6 @@
 // Maps engine errors to specific, translated recovery messages.
 // Only the stable `code` (and app-supplied context) is used: `error.message` is never shown in
 // the UI, so provider bodies, keys or transcript text cannot leak through an error.
-import { ERROR_CODES } from '../../../core/errors.js';
 
 /** i18n key for each engine error code. Every code must have one (tests enforce it). */
 export const ERROR_KEYS = Object.freeze({
@@ -55,7 +54,8 @@ export function describeError(error, context = {}) {
   }
   const code = error && typeof error === 'object' && typeof error.code === 'string' && ERROR_KEYS[error.code] ? error.code : null;
   if (!code) return { key: APP_ERROR_KEYS.unexpected, vars, code: 'unexpected', retryable: false };
-  const retryable = ['rate_limit', 'provider_unavailable', 'network', 'timeout'].includes(code);
+  // The engine decides what is worth retrying (ScribeError#retryable); no second list here.
+  const retryable = Boolean(error.retryable);
   // Browsers cannot tell "offline", "wrong URL" and "CORS blocked" apart; local and custom
   // endpoints most often fail because CORS is not enabled, so say exactly how to enable it.
   if (code === 'network' && context.browser === 'local') return { key: 'app.err.corsLocal', vars, code, retryable };
@@ -76,5 +76,3 @@ export class AppError extends Error {
     this.appCode = appCode;
   }
 }
-
-export const KNOWN_ENGINE_CODES = ERROR_CODES;

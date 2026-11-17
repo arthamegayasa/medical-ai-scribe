@@ -23,12 +23,18 @@ npm test        # node --test, with mocked providers
 npm run build   # copies web/ into public/
 ```
 
-CI runs these on Node 20, 22 and 24. Browser end-to-end tests against a mock provider are being added as `npm run test:e2e`; once they land, run them too for UI changes.
+CI runs these on Node 20, 22 and 24. For UI changes also run the browser end-to-end tests:
+
+```bash
+npm run test:e2e   # headless Chrome or Edge against a mock provider; needs a local Chrome/Edge
+```
+
+They start the local server with `testHooks: true` (see `makeServer` in `dev-server.js`), which adds a `scribe-test-hooks` meta tag to HTML pages so the workspace exposes its store as `window.__scribe` for assertions. `npm run dev` and the production build never have it.
 
 Useful references:
 
 - [`web/core/README.md`](web/core/README.md): the engine API (providers, generation, verification, transcription, export, server mode).
-- [`web/app/UI-CONTRACT.md`](web/app/UI-CONTRACT.md): the workspace markup hooks, events and i18n rules. `/app/?demo=list` renders every UI state without the engine.
+- [`web/app/UI-CONTRACT.md`](web/app/UI-CONTRACT.md): the workspace markup hooks, events and i18n rules. `/app/?demo=list` renders every UI state without the engine (local `npm run dev` only; the harness is not part of the production build).
 - [GLOSSARY.md](GLOSSARY.md) for project terms and [`docs/adr/`](docs/adr/) for the reasons behind the architecture.
 
 ## Ground rules
@@ -56,7 +62,7 @@ The policy in `vercel.json` is the single source of the security headers; `dev-s
 
 ### Keep the draft honest
 
-The DRAFT label, review flags, unverified markers and "check number" markers must stay visible in the UI and in every export. Changes to the prompt, schema or verification (`web/core/soap/`) need tests that show the safety properties still hold.
+The DRAFT label, review flags, the unverified, close-match, edited and clinician-entered markers and the "check number" markers must stay visible in the UI and in every export. Only an exact quote match may make a statement grounded (see [ADR 0003](docs/adr/0003-evidence-linked-statements.md)). Changes to the prompt, schema or verification (`web/core/soap/`) need tests that show the safety properties still hold.
 
 ## Test first
 
@@ -108,8 +114,8 @@ Then:
 Note languages are in `LANGUAGES` in [`web/core/soap/prompt.js`](web/core/soap/prompt.js): a `label` and the exact `notDocumented` sentence the model must use for an empty section. That sentence is also how verification recognises empty sections, so it must be exact and unique.
 
 - Export labels are in `LABELS` in `web/core/export/model.js`. Languages without an entry export with English labels; add one for a complete translation.
-- Add the language to the note-language `select` elements in `web/app/index.html`.
-- Number words used by the number check (`web/core/soap/evidence.js`) currently cover English and Indonesian. Adding another language's number words is welcome, with tests.
+- The note-language selects are built from `LANGUAGES` (via `NOTE_LANGUAGES` in `web/assets/js/app/prefs.js`); add the language's name as `app.lang.<code>` to both `web/assets/js/strings/en.js` and `id.js`.
+- Number words and unit spellings used by the number check (`web/core/soap/numbers.js`) currently cover English and Indonesian. Adding another language's number words is welcome, with tests in `tests/core-numbers.test.js`.
 - Interface translations are a separate matter: a new UI language needs a full strings file with the same keys and placeholders as `en.js`, and changes to `i18n.js`. Open an issue first.
 
 Translations by fluent speakers, ideally clinicians, are much appreciated.

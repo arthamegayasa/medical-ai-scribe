@@ -1,8 +1,9 @@
 // User preferences. These may persist on the device; they never contain encounter content or keys.
-import { TEMPLATES } from '../../../core/soap/prompt.js';
+import { TEMPLATES, LANGUAGES } from '../../../core/soap/prompt.js';
 
 export const PREFS_KEY = 'scribe.prefs';
-export const NOTE_LANGUAGES = Object.freeze(['en', 'id']);
+// Every note language the engine supports (the selects are built from this list).
+export const NOTE_LANGUAGES = Object.freeze(Object.keys(LANGUAGES));
 export const RETENTION_DAYS = Object.freeze([1, 7, 30, 0]);
 export const VOCABULARY_LIMITS = Object.freeze({ terms: 300, termChars: 100 });
 

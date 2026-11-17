@@ -5,7 +5,8 @@ import { verifyNote, validateNote, hashText, SECTIONS, toMarkdown } from '../web
 import { describeError, ERROR_KEYS, APP_ERROR_KEYS, AppError } from '../web/assets/js/app/messages.js';
 import { exampleData, EXAMPLE_UNVERIFIED } from '../web/assets/js/app/example.js';
 import { parsePasted, turnsFromTranscript, buildSource, turnIdsForSpan, spanPiecesByTurn, splitPlain, clock, transcriptForCopy } from '../web/assets/js/app/transcript.js';
-import { fromEngineNote, toEngineNote, annotate } from '../web/assets/js/app/note.js';
+import { fromEngineNote, toEngineNote, annotate, applyProvenance, itemsFromEngine } from '../web/assets/js/app/note.js';
+import { reducer, initialState } from '../web/assets/js/app/store.js';
 import { createSegmentJob } from '../web/assets/js/app/segments.js';
 import en from '../web/assets/js/strings/en.js';
 import id from '../web/assets/js/strings/id.js';
@@ -115,23 +116,23 @@ test('app note converts to a valid engine note (empty sections become "not docum
   const app = fromEngineNote(note);
   app.sections.assessment = [];
   app.sections.plan.push({ id: 'empty', text: '   ', evidence: [] });
-  app.sections.plan.push({ id: 'mine', text: 'Paracetamol 500 mg as needed.', evidence: [] });
+  app.sections.plan.push({ id: 'mine', text: 'Paracetamol 500 mg as needed.', evidence: [], origin: 'clinician' });
   const { note: engine, positions } = toEngineNote(app, 'id');
   assert.deepEqual(validateNote(engine), engine);
   assert.deepEqual(engine.assessment, [{ text: 'Tidak didokumentasikan dalam pertemuan ini.', evidence: [] }]);
   assert.equal(positions.has('empty'), false);
   const { text, ranges } = buildSource(turns);
-  const view = annotate(app, verifyNote(engine, text), positions, ranges);
+  const view = annotate(app, applyProvenance(app, verifyNote(engine, text), positions), positions, ranges);
   const cc = view.statements.get(app.sections.chief_complaint[0].id);
   assert.equal(cc.status, 'grounded');
   assert.deepEqual(cc.turnIds, ['t2']);
   const mine = view.statements.get('mine');
-  assert.equal(mine.status, 'unverified');
+  assert.equal(mine.status, 'clinician');
   assert.deepEqual(mine.numberIssues, ['500 mg']);
   assert.equal(view.statements.get('empty').status, 'none');
   const dominance = view.flags.get(app.flags[0].id);
   assert.equal(dominance.target, app.sections.chief_complaint[0].id, 'a flag points at the first statement citing the same turn');
-  assert.equal(view.summary.unverified, 2);
+  assert.equal(view.summary.unverified, 1);
 });
 
 test('segment job keeps completed segments when one fails and retries only what is missing', async () => {
@@ -171,4 +172,82 @@ test('segment job cancels on the caller signal', async () => {
     }),
   });
   await assert.rejects(job.start(controller.signal), (error) => error.code === 'aborted');
+});
+
+test('retryability comes from the engine error itself, and the messages module has no duplicate code list', async () => {
+  for (const code of ERROR_CODES) assert.equal(describeError(new ScribeError(code)).retryable, new ScribeError(code).retryable, code);
+  assert.equal(describeError({ code: 'network', retryable: false }).retryable, false, 'the flag, not a second list, decides');
+  assert.equal(describeError({ code: 'bad_request', retryable: true }).retryable, true);
+  const messages = await import('../web/assets/js/app/messages.js');
+  assert.equal('KNOWN_ENGINE_CODES' in messages, false);
+});
+
+// ---------- Statement provenance: edited and clinician-entered lines ----------
+const verifyApp = (app, turns, language = 'en') => {
+  const { note: engine, positions } = toEngineNote(app, language);
+  const { text, ranges } = buildSource(turns);
+  const verification = applyProvenance(app, verifyNote(engine, text), positions);
+  return { engine, verification, view: annotate(app, verification, positions, ranges) };
+};
+
+test('editing a model statement withdraws grounding until its text is again exactly what was verified', () => {
+  const { turns, note, meta } = exampleData('en');
+  let state = reducer(initialState(), { type: 'note/ready', note: fromEngineNote(note), meta });
+  const cc = state.session.note.sections.chief_complaint[0];
+  assert.equal(cc.origin, 'model');
+  assert.equal(verifyApp(state.session.note, turns).view.statements.get(cc.id).status, 'grounded');
+  const edit = (text) => { state = reducer(state, { type: 'statement/edit', section: 'chief_complaint', id: cc.id, text }); return verifyApp(state.session.note, turns); };
+  let result = edit(`No ${cc.text}`);
+  assert.equal(result.view.statements.get(cc.id).status, 'edited', 'a rewritten line keeps its quotes but is not grounded');
+  assert.ok(result.view.statements.get(cc.id).turnIds.length > 0, 'the original evidence stays visible for re-checking');
+  assert.equal(result.verification.sections.chief_complaint[0].status, 'edited');
+  assert.equal(result.verification.summary.edited, 1);
+  assert.equal(result.view.summary.edited, 1);
+  const md = toMarkdown({ note: result.engine, meta, verification: result.verification });
+  assert.match(md, /\[EDITED - RE-CHECK AGAINST TRANSCRIPT\]/);
+  assert.match(md, /edited after verification/);
+  result = edit(`  ${cc.text.replace(/ /g, '  ')} `);
+  assert.equal(result.view.statements.get(cc.id).status, 'grounded', 'whitespace-only changes keep the verified text');
+  result = edit(cc.text.toUpperCase());
+  assert.equal(result.view.statements.get(cc.id).status, 'edited', 'any other change, even case, needs a re-check');
+  result = edit(cc.text);
+  assert.equal(result.view.statements.get(cc.id).status, 'grounded', 'restoring the verified text restores grounding');
+  const rewritten = itemsFromEngine([{ text: 'Rest the hand.', evidence: ['splint at night'] }]);
+  assert.deepEqual([rewritten[0].origin, rewritten[0].verifiedText], ['model', 'Rest the hand.']);
+});
+
+test('a line the clinician typed reads as clinician-entered, never as an unverified AI claim', () => {
+  const { turns, note, meta } = exampleData('en');
+  let state = reducer(initialState(), { type: 'note/ready', note: fromEngineNote(note), meta });
+  state = reducer(state, { type: 'statement/add', section: 'assessment', id: 'mine' });
+  assert.deepEqual(state.session.note.sections.assessment.at(-1), { id: 'mine', text: '', evidence: [], origin: 'clinician' });
+  state = reducer(state, { type: 'statement/edit', section: 'assessment', id: 'mine', text: 'Ibuprofen 400 mg as needed.' });
+  const { view, verification, engine } = verifyApp(state.session.note, turns);
+  const mine = view.statements.get('mine');
+  assert.equal(mine.status, 'clinician');
+  assert.deepEqual(mine.numberIssues, ['400 mg'], 'numbers are still checked against the transcript');
+  assert.equal(view.summary.unverified, 1, 'only the deliberately unsupported AI line is unverified');
+  assert.equal(view.summary.clinician, 1);
+  const text = toMarkdown({ note: engine, meta, verification });
+  const line = text.split('\n').find((l) => l.includes('Ibuprofen 400 mg'));
+  assert.match(line, /\[CLINICIAN-ENTERED\]/);
+  assert.doesNotMatch(line, /UNVERIFIED/);
+});
+
+test('note-language selects offer every engine language, from the engine list, with labels in both UI languages', async () => {
+  const { LANGUAGES } = await import('../web/core/soap/prompt.js');
+  const { NOTE_LANGUAGES, sanitizePrefs } = await import('../web/assets/js/app/prefs.js');
+  const { noteLanguageOptions } = await import('../web/assets/js/app/format.js');
+  assert.deepEqual([...NOTE_LANGUAGES], Object.keys(LANGUAGES));
+  assert.deepEqual(noteLanguageOptions().map((o) => o.value), Object.keys(LANGUAGES));
+  for (const { value, key } of noteLanguageOptions()) {
+    assert.equal(key, `app.lang.${value}`);
+    assert.ok(en[key] && id[key], `label for ${value} in English and Indonesian`);
+  }
+  assert.equal(sanitizePrefs({ noteLanguage: 'de' }).noteLanguage, 'de');
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../web/app/index.html', import.meta.url), 'utf8');
+  for (const match of html.matchAll(/<select[^>]*data-note-language-select[^>]*>([\s\S]*?)<\/select>/g)) {
+    assert.doesNotMatch(match[1], /<option/, 'no second, hard-coded language list in the markup');
+  }
 });

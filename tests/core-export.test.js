@@ -88,3 +88,29 @@ test('docx package contains the required parts and well-formed XML; HTML can lin
   assert.throws(() => toMarkdown({ note: { plan: [] }, meta: META }), { code: 'invalid_output' });
   assert.throws(() => toMarkdown({ note: NOTE }), { code: 'invalid_input' });
 });
+
+test('approximate, edited and clinician-entered statements carry their own markers and banners in every export', () => {
+  const note = {
+    ...NOTE,
+    subjective: [
+      { text: 'Close match line.', evidence: ['paracetamol 500 mg'] },
+      { text: 'Edited line.', evidence: ['paracetamol 500 mg'] },
+      { text: 'Typed by the clinician.', evidence: [] },
+    ],
+  };
+  const verification = verifyNote(note, TRANSCRIPT);
+  const statuses = ['approximate', 'edited', 'clinician'];
+  verification.sections.subjective = verification.sections.subjective.map((item, i) => ({ ...item, status: statuses[i] }));
+  const input = { note, meta: META, verification };
+  const outputs = { markdown: toMarkdown(input), text: toPlainText(input), html: toHtml(input), docx: readZip(toDocx(input))['word/document.xml'] };
+  for (const [format, output] of Object.entries(outputs)) {
+    assert.ok(output.includes('[CLOSE MATCH - CHECK WORDING]'), `${format} approximate marker`);
+    assert.ok(output.includes('[EDITED - RE-CHECK AGAINST TRANSCRIPT]'), `${format} edited marker`);
+    assert.ok(output.includes('[CLINICIAN-ENTERED]'), `${format} clinician marker`);
+    assert.ok(output.includes('1 statement(s) only closely match the transcript'), `${format} approximate banner`);
+    assert.ok(output.includes('1 statement(s) were edited after verification'), `${format} edited banner`);
+    assert.ok(!output.includes('[UNVERIFIED]'), `${format}: none of these is reported as unverified`);
+  }
+  const id = toPlainText({ ...input, meta: { ...META, language: 'id' } });
+  for (const mark of ['[MIRIP - PERIKSA KATA-KATA]', '[DIEDIT - PERIKSA ULANG DENGAN TRANSKRIP]', '[DITULIS KLINISI]']) assert.ok(id.includes(mark), mark);
+});
