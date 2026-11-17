@@ -20,7 +20,9 @@ function initialLang() {
   } catch {
     /* ignore */
   }
-  const nav = (navigator.languages || [navigator.language || 'en']).map((l) => String(l).toLowerCase());
+  // No navigator outside a browser (unit tests on Node 20 import this module).
+  const browser = globalThis.navigator || {};
+  const nav = (browser.languages || [browser.language || 'en']).map((l) => String(l).toLowerCase());
   return nav.some((l) => l === 'id' || l.startsWith('id-') || l === 'in') ? 'id' : 'en';
 }
 
