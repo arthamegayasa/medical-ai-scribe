@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest an improvement to the workflow, the draft, or self-hosting.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today? Clinical context helps.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would you like to happen? Sketches are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      description: Proposals that break these are unlikely to be accepted; say so if you think one should change, and why.
+      options:
+        - label: Works without adding runtime dependencies or a build step.
+        - label: Works under the strict Content Security Policy (no inline scripts or styles, no third-party assets).
+        - label: Does not send keys or clinical content anywhere except the provider the user chose.
+        - label: Keeps the draft label, review flags and unverified markers visible.

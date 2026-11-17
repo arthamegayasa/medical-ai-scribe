@@ -48,7 +48,7 @@ import { t, tn, getLang, setLang, onLangChange, applyI18n } from '/assets/js/i18
 import { getTheme, setTheme, toggleTheme, resolvedTheme, onThemeChange } from '/assets/js/theme.js';
 ```
 
-Load your wiring as a second module tag after `app-ui.js` in `web/app/index.html` (`<script type="module" src="/assets/js/wiring.js">` or similar), or listen for `document` event `ui:ready`.
+The wiring is `web/assets/js/app/main.js`, loaded as a second module tag after `app-ui.js`. It keeps all state in one store (`app/store.js`, pure reducer) and sets `html[data-app="ready"]` once server-mode detection has finished. With `?demo=` in the URL the wiring stays idle so the design harness can render its states.
 
 Events the UI emits (all bubble; `detail` shown):
 
@@ -191,10 +191,19 @@ JS-only keys prepared for you (with placeholders): `app.conn.checking`, `app.con
 
 ## Non-obvious details
 
-- The fictional example content in `demo-states.js` is English only; your real example loader can reuse it (it is clearly marked fictional) or provide an Indonesian version.
+- The real fictional example lives in `app/example.js` (English and Bahasa Indonesia, following the interface language); `demo-states.js` keeps its own English sample for design review.
 - The connection key field is `type=password` with `autocomplete="off"`; never write keys into URLs, logs or `data-*` attributes.
 - `.statement__remove`, `.add-line` and the section rewrite button only appear on hover/focus on pointer devices, and on focus on phones.
 - Below 960px only one pane shows; after generating a draft call `showPane('note')`. The pane-switch badge `#pane-note-flags` shows the open flag count.
 - Print stylesheet hides everything except the note and keeps the draft band.
 - Landing CTAs link to `/app/?example=1` (load the fictional example on arrival) and `/app/`.
-- `og:image` is relative (`/assets/img/og-image.png`); set an absolute URL once the production domain is known.
+- Landing and workspace carry `rel=canonical`, `og:url` and an absolute `og:image` on `https://medicalaiscribe.vercel.app`.
+
+## Reconciled with the engine, and hooks added by the wiring
+
+- Template values are the engine's `TEMPLATES` ids: `general, neurology, emergency, internal_medicine, pediatrics, psychiatry, follow_up` (the shell had `internal` and no follow-up). Every `select[data-template-select]` is rebuilt from them; labels are `templates.*` (`templates.internal`, `templates.followUp`).
+- Engine errors map to `app.err.<code>` (one key per `ERROR_CODES` entry, plus `app.err.corsLocal`, `corsCustom`, `rate_limit_wait`, `endpointNotFound` and app-level codes in `app/messages.js`). The older `app.error.*` keys remain for `demo-states.js` only. `error.message` is never shown.
+- Transcript: `#speaker-source` / `#speaker-source-text` (notice when labels are AI-suggested or diarized without roles), `#btn-suggest-speakers` (menu item, optional AI labelling of unlabelled text), `.turn[data-ai-speaker="true"]` (a role suggested by AI), `.turn__time` also shows the diarized speaker ("Speaker A").
+- Note: `#note-stream` (sections fill in while streaming; the skeleton hides once content arrives), `[data-action="copy-section"]` in each section head, `.ev-chip--number` (check-number marker built by the wiring), `.statement.is-cited` (statements citing the hovered or focused turn), and `::highlight(scribe-evidence)` for the exact supporting words inside a turn (CSS Custom Highlight API; browsers without it still get the whole-turn highlight). While a section is rewritten its rewrite button gets `data-regenerating="true"` and cancels the rewrite when pressed again.
+- Settings: `#conn-test-hint` (why a provider cannot be tested, e.g. Deepgram), `#pref-history-unavailable` (no IndexedDB), `#storage-blocked` (storage blocked; values kept in memory). Onboarding: `#ob-base-url-field` / `#ob-base-url` (local and custom endpoints), `#ob-key-field`, `#ob-privacy`.
+- Printing uses a hidden `iframe.print-frame` loading a `blob:` document that links `/core/export/print.css` by absolute URL.

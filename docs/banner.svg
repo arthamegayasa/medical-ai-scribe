@@ -1,8 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="460" viewBox="0 0 1440 460" role="img" aria-labelledby="title desc">
-<title id="title">Medical AI Scribe — From conversation to considered documentation</title><desc id="desc">Navy and teal banner with an audio waveform becoming a structured SOAP draft. OpenAI, Anthropic, Gemini, OpenRouter and compatible models.</desc>
-<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b202c"/><stop offset="1" stop-color="#16434a"/></linearGradient><linearGradient id="wave"><stop stop-color="#477d89"/><stop offset="1" stop-color="#86e2cf"/></linearGradient></defs>
-<rect width="1440" height="460" rx="24" fill="url(#bg)"/>
-<g font-family="Segoe UI,Arial,sans-serif"><text x="74" y="91" fill="#86cfca" font-size="13" font-weight="600" letter-spacing="4">CLINICAL DOCUMENTATION / YOUR CHOICE OF MODEL</text><text x="70" y="187" fill="#f3fcfc" font-size="66" font-weight="650" letter-spacing="-2">Medical AI Scribe</text><text x="74" y="233" fill="#aacbd1" font-size="24">From conversation to considered documentation.</text><path d="M74 274h46" stroke="#75cec1" stroke-width="3"/><text x="74" y="319" fill="#d8e9ec" font-size="17">Capture. Structure. Review.</text><text x="74" y="373" fill="#81a8b3" font-size="14">OpenAI · Anthropic · Gemini · OpenRouter · Compatible endpoints</text>
-<g transform="translate(900 83)"><path d="M0 143h14m5-23v46m12-72v98m12-66v34m12-95v154m12-125v96m12-60v26m12-90v155m12-177v205m12-157v95m12-116v140m12-118v96m12-66v37m12-54v74m12-49v23m12-24v25" fill="none" stroke="url(#wave)" stroke-width="4" stroke-linecap="round"/>
-<path d="M196 143h40m-9-7 9 7-9 7" fill="none" stroke="#557d85" stroke-width="2"/>
-<rect x="253" y="25" width="196" height="258" rx="15" fill="#1b414a" stroke="#466c72"/><text x="273" y="60" fill="#83c4be" font-size="10" letter-spacing="2">SOAP / DRAFT</text><g font-size="12" fill="#9bd4cb"><text x="275" y="101">S</text><text x="275" y="151">O</text><text x="275" y="201">A</text><text x="275" y="251">P</text></g><g fill="none" stroke="#689298" stroke-width="3" stroke-linecap="round"><path d="M302 94h120m-120 13h89M302 144h104m-104 13h120M302 194h114m-114 13h76M302 244h120m-120 13h102"/></g></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" role="img" aria-labelledby="banner-title banner-desc">
+  <title id="banner-title">Medical AI Scribe: a little less paperwork, a little more room for the patient</title>
+  <desc id="banner-desc">A fictional transcript turn is linked to the SOAP draft statement it supports. A statement with no supporting quote is marked unverified.</desc>
+  <style>
+    .bg { fill: #f4f6f5; stroke: #dbe2df; }
+    .card { fill: #ffffff; stroke: #dbe2df; }
+    .ink { fill: #15242b; }
+    .ink2 { fill: #4b5b61; }
+    .ink3 { fill: #5c6c71; }
+    .rule { stroke: #dbe2df; }
+    .accent { fill: #0b6e5f; }
+    .accent-stroke { stroke: #0b6e5f; }
+    .accent-soft { fill: #e2f1ec; }
+    .accent-line { stroke: #8cc7b8; }
+    .review { fill: #934a05; }
+    .review-stroke { stroke: #934a05; }
+    .review-soft { fill: #fbefe0; }
+    .review-line { stroke: #e2b27a; }
+    .mark-body { fill: #15242b; }
+    .mark-line { stroke: #ffffff; }
+    .serif { font-family: "Source Serif 4", "Iowan Old Style", Charter, Georgia, "Times New Roman", serif; }
+    .sans { font-family: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0e1517; stroke: #263538; }
+      .card { fill: #152023; stroke: #263538; }
+      .ink { fill: #e3eae8; }
+      .ink2 { fill: #a3b3b2; }
+      .ink3 { fill: #8a9b9b; }
+      .rule { stroke: #263538; }
+      .accent { fill: #5cc3ab; }
+      .accent-stroke { stroke: #5cc3ab; }
+      .accent-soft { fill: #15332d; }
+      .accent-line { stroke: #2f7566; }
+      .review { fill: #eaa65c; }
+      .review-stroke { stroke: #eaa65c; }
+      .review-soft { fill: #33240f; }
+      .review-line { stroke: #7a5226; }
+      .mark-body { fill: #e3eae8; }
+      .mark-line { stroke: #0e1517; }
+    }
+  </style>
+
+  <rect class="bg" x="0.5" y="0.5" width="1279" height="439" rx="20"/>
+
+  <!-- Wordmark -->
+  <g transform="translate(64 60) scale(1.5)">
+    <rect class="mark-body" x="4" y="2.5" width="20" height="27" rx="4.5"/>
+    <path class="mark-line" d="M9 10h10M9 16h5.5M9 22h8" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path class="accent-stroke" d="M17 16h7.5" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="0.1 3.8" fill="none"/>
+    <circle class="accent" cx="27.5" cy="16" r="3"/>
+  </g>
+  <text class="sans ink3" x="122" y="90" font-size="13" font-weight="700" letter-spacing="2.2">OPEN SOURCE · BRING YOUR OWN KEY</text>
+
+  <text class="serif ink" x="64" y="186" font-size="58" font-weight="600" letter-spacing="-1">Medical AI Scribe</text>
+  <text class="serif ink2" x="64" y="240" font-size="27">A little less paperwork.</text>
+  <text class="serif ink2" x="64" y="276" font-size="27">A little more room for the patient.</text>
+  <rect class="accent" x="64" y="308" width="44" height="3" rx="1.5"/>
+  <text class="sans ink2" x="64" y="350" font-size="17">SOAP drafts where every statement links back to</text>
+  <text class="sans ink2" x="64" y="374" font-size="17">the words it came from. Clinician-reviewed by design.</text>
+
+  <!-- Transcript card -->
+  <rect class="card" x="664" y="56" width="262" height="328" rx="14"/>
+  <text class="sans ink3" x="688" y="88" font-size="11.5" font-weight="700" letter-spacing="1.8">TRANSCRIPT</text>
+  <line class="rule" x1="664" y1="104" x2="926" y2="104" stroke-width="1"/>
+
+  <text class="sans ink3" x="688" y="132" font-size="12" font-weight="700">1  Doctor</text>
+  <text class="sans ink2" x="688" y="152" font-size="13.5">What brings you in today?</text>
+
+  <rect class="accent-soft" x="676" y="170" width="238" height="92" rx="8"/>
+  <rect class="accent" x="676" y="170" width="3" height="92" rx="1.5"/>
+  <text class="sans accent" x="688" y="194" font-size="12" font-weight="700">2  Patient</text>
+  <text class="sans ink" x="688" y="215" font-size="13.5">For about six weeks my right</text>
+  <text class="sans ink" x="688" y="234" font-size="13.5">hand goes numb and tingly at</text>
+  <text class="sans ink" x="688" y="253" font-size="13.5">night.</text>
+
+  <text class="sans ink3" x="688" y="292" font-size="12" font-weight="700">3  Patient</text>
+  <text class="sans ink2" x="688" y="312" font-size="13.5">It is worse after a long day</text>
+  <text class="sans ink2" x="688" y="331" font-size="13.5">of typing.</text>
+  <text class="sans ink3" x="688" y="364" font-size="11" font-style="italic">Fictional consultation</text>
+
+  <!-- Draft card -->
+  <rect class="card" x="958" y="56" width="258" height="328" rx="14"/>
+  <text class="sans ink3" x="982" y="88" font-size="11.5" font-weight="700" letter-spacing="1.8">SOAP DRAFT</text>
+  <rect class="review-soft" x="1078" y="74" width="114" height="20" rx="10"/>
+  <text class="sans review" x="1135" y="88" font-size="11" font-weight="700" text-anchor="middle">DRAFT</text>
+  <line class="rule" x1="958" y1="104" x2="1216" y2="104" stroke-width="1"/>
+
+  <text class="sans ink3" x="982" y="132" font-size="11.5" font-weight="700" letter-spacing="1.2">SUBJECTIVE</text>
+
+  <text class="serif ink" x="982" y="164" font-size="16">Six weeks of night-time</text>
+  <text class="serif ink" x="982" y="186" font-size="16">numbness, right hand.</text>
+  <rect x="1158" y="150" width="40" height="22" rx="11" fill="none" class="accent-line" stroke-width="1.5"/>
+  <text class="sans accent" x="1178" y="166" font-size="12.5" font-weight="700" text-anchor="middle">↗ 2</text>
+
+  <text class="serif ink" x="982" y="226" font-size="16">Worse after prolonged</text>
+  <text class="serif ink" x="982" y="248" font-size="16">typing.</text>
+  <rect x="1158" y="212" width="40" height="22" rx="11" fill="none" class="accent-line" stroke-width="1.5"/>
+  <text class="sans accent" x="1178" y="228" font-size="12.5" font-weight="700" text-anchor="middle">↗ 3</text>
+
+  <text class="serif ink" x="982" y="290" font-size="16">No history of diabetes.</text>
+  <line class="review-stroke" x1="982" y1="297" x2="1150" y2="297" stroke-width="1.5" stroke-dasharray="2 3"/>
+  <rect class="review-soft" x="982" y="312" width="96" height="22" rx="11"/>
+  <rect x="982" y="312" width="96" height="22" rx="11" fill="none" class="review-line" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text class="sans review" x="1030" y="328" font-size="12" font-weight="700" text-anchor="middle">Unverified</text>
+  <text class="sans ink3" x="982" y="362" font-size="11.5">No supporting quote found.</text>
+
+  <!-- Evidence link -->
+  <path class="accent-stroke" d="M958 172 C 942 172, 936 214, 914 214" fill="none" stroke-width="2"/>
+  <circle class="accent" cx="958" cy="172" r="3.5"/>
+  <circle class="accent" cx="914" cy="214" r="3.5"/>
+</svg>

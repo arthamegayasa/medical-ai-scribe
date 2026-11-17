@@ -3,6 +3,7 @@ import { invalidInput } from './errors.js';
 // CORS facts come from unauthenticated preflights sent with Origin https://medicalaiscribe.vercel.app
 // on 2026-11-17 for every endpoint and header set the engine uses. Re-run them before changing a
 // preset's `browser` value. Model IDs are suggestions only; the UI should prefer listModels().
+// `defaultChatModel` is the balanced (mid-tier) choice used when nothing else is selected.
 const MB = 1000 * 1000;
 
 export const PROVIDERS = Object.freeze([
@@ -11,7 +12,7 @@ export const PROVIDERS = Object.freeze([
     keyUrl: 'https://platform.openai.com/api-keys', keyRequired: true, browser: 'direct',
     capabilities: { chat: true, transcription: true, modelListing: true, diarization: true },
     structuredModes: ['json_schema', 'json_object', 'prompt'], tokenParam: 'max_completion_tokens', sendStore: true,
-    chatModels: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6.1-terra', 'gpt-6-luna'],
+    chatModels: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6.1-terra', 'gpt-6-luna'], defaultChatModel: 'gpt-6.1-terra',
     transcriptionModels: ['gpt-transcribe', 'gpt-4o-transcribe-diarize'],
     transcriptionDialect: 'openai', maxUploadBytes: 25 * MB,
   },
@@ -20,14 +21,14 @@ export const PROVIDERS = Object.freeze([
     keyUrl: 'https://platform.claude.com/settings/keys', keyRequired: true, browser: 'direct',
     capabilities: { chat: true, transcription: false, modelListing: true, diarization: false },
     structuredModes: ['json_schema', 'prompt'],
-    chatModels: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], transcriptionModels: [],
+    chatModels: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], defaultChatModel: 'claude-sonnet-5-5', transcriptionModels: [],
   },
   {
     id: 'gemini', label: 'Google Gemini', family: 'gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     keyUrl: 'https://aistudio.google.com/apikey', keyRequired: true, browser: 'direct',
     capabilities: { chat: true, transcription: true, modelListing: true, diarization: false },
     structuredModes: ['json_schema', 'json_object', 'prompt'],
-    chatModels: ['gemini-3.8-flash', 'gemini-4-hydrogen', 'gemini-3.5-flash-lite'],
+    chatModels: ['gemini-3.8-flash', 'gemini-4-hydrogen', 'gemini-3.5-flash-lite'], defaultChatModel: 'gemini-3.8-flash',
     transcriptionModels: ['gemini-3.8-flash', 'gemini-4-hydrogen'],
     // Inline requests are capped at 20 MB including base64 overhead (4/3) and the prompt.
     transcriptionDialect: 'gemini', maxUploadBytes: 14 * MB,
@@ -37,7 +38,7 @@ export const PROVIDERS = Object.freeze([
     keyUrl: 'https://openrouter.ai/settings/keys', keyRequired: true, browser: 'direct',
     capabilities: { chat: true, transcription: false, modelListing: true, diarization: false },
     structuredModes: ['json_schema', 'json_object', 'prompt'], tokenParam: 'max_tokens', requireParameters: true,
-    chatModels: ['anthropic/claude-sonnet-5.5', 'openai/gpt-6.1-sol', 'google/gemini-3.8-flash'], transcriptionModels: [],
+    chatModels: ['anthropic/claude-sonnet-5.5', 'openai/gpt-6.1-sol', 'google/gemini-3.8-flash'], defaultChatModel: 'anthropic/claude-sonnet-5.5', transcriptionModels: [],
   },
   {
     id: 'groq', label: 'Groq', family: 'openai', baseUrl: 'https://api.groq.com/openai/v1',
@@ -45,7 +46,7 @@ export const PROVIDERS = Object.freeze([
     capabilities: { chat: true, transcription: true, modelListing: true, diarization: false },
     // Groq rejects json_schema together with streaming.
     structuredModes: ['json_schema', 'json_object', 'prompt'], schemaWithStream: false, tokenParam: 'max_completion_tokens',
-    chatModels: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'],
+    chatModels: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'], defaultChatModel: 'openai/gpt-oss-120b',
     transcriptionModels: ['whisper-large-v3-turbo', 'whisper-large-v3'],
     transcriptionDialect: 'whisper', maxUploadBytes: 25 * MB,
   },
@@ -54,7 +55,7 @@ export const PROVIDERS = Object.freeze([
     keyUrl: 'https://console.mistral.ai/api-keys', keyRequired: true, browser: 'direct',
     capabilities: { chat: true, transcription: true, modelListing: true, diarization: true },
     structuredModes: ['json_schema', 'json_object', 'prompt'], tokenParam: 'max_tokens',
-    chatModels: ['mistral-large-latest', 'mistral-small-latest'], transcriptionModels: ['voxtral-mini-latest'],
+    chatModels: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'], defaultChatModel: 'mistral-medium-latest', transcriptionModels: ['voxtral-mini-latest'],
     transcriptionDialect: 'mistral', maxUploadBytes: 25 * MB,
   },
   {

@@ -79,7 +79,8 @@ A **connection** is a plain object you keep in UI state (store keys only where t
 
 Use separate connections for transcription and for note generation if you like.
 
-Preset fields: `id, label, family ('openai'|'anthropic'|'gemini'|'deepgram'|'elevenlabs'), baseUrl,
+Preset fields: `id, label, family ('openai'|'anthropic'|'gemini'|'deepgram'|'elevenlabs'), baseUrl, defaultChatModel?
+(the balanced, mid-tier model used as the default note model in the app and in server mode),
 keyUrl (where to create a key, or null), keyRequired, customBaseUrl?, browser, capabilities
 { chat, transcription, modelListing, diarization }, structuredModes, chatModels, transcriptionModels,
 maxUploadBytes (transcription presets), transcriptionDialect`.

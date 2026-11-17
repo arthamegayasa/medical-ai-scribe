@@ -210,7 +210,7 @@ test('section regeneration and speaker labelling run through the same server-hel
   assert.equal(section.body.section, 'plan');
   const source = 'How are you today? I am fine thanks.';
   const labelled = await call('labelSpeakers', { env: allEnv, body: { provider: 'openai', transcript: source }, fetchImpl: async (_u, o) => {
-    assert.equal(JSON.parse(o.body).model, 'gpt-6.1-sol');
+    assert.equal(JSON.parse(o.body).model, 'gpt-6.1-terra');
     return openaiReply({ turns: [{ speaker: 'Doctor', text: 'How are you today?' }, { speaker: 'Patient', text: 'I am fine thanks.' }] });
   } });
   assert.equal(labelled.statusCode, 200);

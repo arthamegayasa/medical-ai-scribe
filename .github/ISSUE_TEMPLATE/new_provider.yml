@@ -1,0 +1,56 @@
+name: New provider
+description: Propose a transcription or note-writing provider preset.
+labels: [provider]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Presets are described in [CONTRIBUTING.md](https://github.com/arthamegayasa/medical-ai-scribe/blob/main/CONTRIBUTING.md#adding-a-provider-preset). Browser-direct support depends on the provider allowing cross-origin (CORS) requests, so the preflight results below matter most.
+  - type: input
+    id: name
+    attributes:
+      label: Provider
+      placeholder: Example AI
+    validations:
+      required: true
+  - type: checkboxes
+    id: capabilities
+    attributes:
+      label: Capabilities
+      options:
+        - label: Note writing (chat / text generation)
+        - label: Audio transcription
+        - label: Speaker diarization
+        - label: Model listing endpoint
+        - label: Structured output (JSON schema or JSON mode)
+  - type: input
+    id: protocol
+    attributes:
+      label: API protocol
+      description: OpenAI-compatible (which endpoints), or its own API? Link the official API reference.
+    validations:
+      required: true
+  - type: textarea
+    id: cors
+    attributes:
+      label: CORS preflight results
+      description: |
+        For each endpoint the engine would call, send an unauthenticated OPTIONS request with
+        `Origin: https://medicalaiscribe.vercel.app`, the method, and the headers it would send (for example `authorization,content-type`).
+        Paste the status and the `Access-Control-Allow-*` response headers, and the date you checked. Remove any key.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: limits
+    attributes:
+      label: Limits and terms
+      description: Upload size limit, supported audio formats, and a link to the provider's data-processing or retention terms.
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you open the pull request?
+      options:
+        - "Yes"
+        - "Maybe, with guidance"
+        - "No"

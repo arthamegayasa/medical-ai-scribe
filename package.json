@@ -1,15 +1,37 @@
 {
   "name": "medical-ai-scribe",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Open-source medical scribe: bring-your-own-key transcription and clinician-reviewed SOAP drafts",
+  "description": "Open-source medical scribe: bring-your-own-key transcription and evidence-linked SOAP drafts for clinician review",
+  "license": "MIT",
+  "author": "Artha Megayasa (https://www.arthamegayasa.com)",
+  "homepage": "https://medicalaiscribe.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arthamegayasa/medical-ai-scribe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arthamegayasa/medical-ai-scribe/issues"
+  },
+  "keywords": [
+    "medical-scribe",
+    "clinical-documentation",
+    "soap-note",
+    "speech-to-text",
+    "transcription",
+    "llm",
+    "byok",
+    "healthcare",
+    "zero-dependency"
+  ],
   "type": "module",
   "scripts": {
     "dev": "node dev-server.js",
     "start": "node dev-server.js",
     "build": "node lib/build.js",
     "test": "node --test",
-    "check": "node lib/check.js"
+    "check": "node lib/check.js",
+    "test:e2e": "node e2e/run.js"
   },
   "engines": {
     "node": ">=20"

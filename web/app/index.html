@@ -6,6 +6,15 @@
   <title>Workspace | Medical AI Scribe</title>
   <meta name="description" content="Turn a consultation into a SOAP note draft for clinician review, with your own AI model.">
   <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://medicalaiscribe.vercel.app/app/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Medical AI Scribe workspace">
+  <meta property="og:description" content="Turn a consultation into a SOAP note draft for clinician review, with your own AI model.">
+  <meta property="og:url" content="https://medicalaiscribe.vercel.app/app/">
+  <meta property="og:image" content="https://medicalaiscribe.vercel.app/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f4f6f5" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0e1517" media="(prefers-color-scheme: dark)">
@@ -21,6 +30,7 @@
   <link rel="stylesheet" href="/assets/css/app.css">
   <script src="/assets/js/theme-boot.js"></script>
   <script type="module" src="/assets/js/app-ui.js"></script>
+  <script type="module" src="/assets/js/app/main.js"></script>
 </head>
 <body class="app">
   <a class="skip-link" href="#workspace" data-i18n="common.skipWorkspace">Skip to workspace</a>
@@ -274,6 +284,7 @@
             <span class="switch__text"><span class="field__label" data-i18n="app.transcript.speakers">Speaker labels</span></span>
             <input type="checkbox" role="switch" id="toggle-speakers" checked>
           </label>
+          <p class="speaker-source" id="speaker-source" role="status" hidden><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-info"/></svg><span id="speaker-source-text"></span></p>
           <div class="transcript__toolbar-end">
             <button class="icon-btn" id="btn-find" type="button" aria-label="Find in transcript" data-i18n-attr="aria-label:app.find.open" aria-expanded="false" aria-controls="find-bar" data-tooltip="" data-shortcut="Ctrl F">
               <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-search"/></svg>
@@ -283,6 +294,7 @@
             </button>
             <div class="menu" id="transcript-menu" role="menu" data-placement="bottom" hidden>
               <button class="menu__item" type="button" role="menuitem" id="btn-add-turn"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg><span data-i18n="app.transcript.addTurn">Add a turn</span></button>
+              <button class="menu__item" type="button" role="menuitem" id="btn-suggest-speakers" hidden><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-edit"/></svg><span data-i18n="app.transcript.suggest">Suggest speaker labels (AI)</span></button>
               <button class="menu__item" type="button" role="menuitem" id="btn-copy-transcript"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg><span data-i18n="app.transcript.copy">Copy transcript</span></button>
               <button class="menu__item" type="button" role="menuitem" id="btn-edit-vocab" data-open-settings="defaults"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-list"/></svg><span data-i18n="app.transcript.vocab">Edit vocabulary hints</span></button>
               <div class="menu__sep" role="separator"></div>
@@ -321,10 +333,11 @@
               <select class="select select--sm" id="quick-template" data-template-select>
                 <option value="general" data-i18n="templates.general">General practice</option>
                 <option value="neurology" data-i18n="templates.neurology">Neurology</option>
-                <option value="internal" data-i18n="templates.internal">Internal medicine</option>
+                <option value="emergency" data-i18n="templates.emergency">Emergency</option>
+                <option value="internal_medicine" data-i18n="templates.internal">Internal medicine</option>
                 <option value="pediatrics" data-i18n="templates.pediatrics">Paediatrics</option>
                 <option value="psychiatry" data-i18n="templates.psychiatry">Psychiatry</option>
-                <option value="emergency" data-i18n="templates.emergency">Emergency</option>
+                <option value="follow_up" data-i18n="templates.followUp">Follow-up visit</option>
               </select>
               <label class="sr-only" for="quick-note-language" data-i18n="app.note.language">Note language</label>
               <select class="select select--sm" id="quick-note-language" data-note-language-select>
@@ -406,6 +419,7 @@
             <p id="gen-status-text">Writing the draft</p>
             <button class="btn btn--ghost btn--sm" id="btn-cancel-generate" type="button" data-i18n="common.cancel">Cancel</button>
           </div>
+          <article class="sheet sheet--stream" id="note-stream" aria-live="off" hidden></article>
           <div class="skeleton-sheet" aria-hidden="true">
             <span class="skeleton skeleton--w40"></span>
             <span class="skeleton skeleton--h skeleton--w20"></span>
@@ -451,6 +465,7 @@
             <section class="note-section note-section--cc" data-section="chief_complaint" data-state="idle" aria-labelledby="sec-cc-title">
               <header class="note-section__head">
                 <h3 class="note-section__title" id="sec-cc-title" data-i18n="soap.chiefComplaint">Chief complaint</h3>
+                <button class="icon-btn icon-btn--sm note-section__copy" type="button" data-action="copy-section" aria-label="Copy this section" data-i18n-attr="aria-label:app.section.copy" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg></button>
               </header>
               <ul class="statements" data-statements="chief_complaint"></ul>
             </section>
@@ -459,6 +474,7 @@
                 <span class="note-section__letter" aria-hidden="true">S</span>
                 <h3 class="note-section__title" id="sec-s-title" data-i18n="soap.subjective">Subjective</h3>
                 <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Subjective" data-i18n-attr="aria-label:app.section.regenS" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+                <button class="icon-btn icon-btn--sm note-section__copy" type="button" data-action="copy-section" aria-label="Copy this section" data-i18n-attr="aria-label:app.section.copy" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg></button>
               </header>
               <ul class="statements" data-statements="subjective"></ul>
               <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
@@ -468,6 +484,7 @@
                 <span class="note-section__letter" aria-hidden="true">O</span>
                 <h3 class="note-section__title" id="sec-o-title" data-i18n="soap.objective">Objective</h3>
                 <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Objective" data-i18n-attr="aria-label:app.section.regenO" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+                <button class="icon-btn icon-btn--sm note-section__copy" type="button" data-action="copy-section" aria-label="Copy this section" data-i18n-attr="aria-label:app.section.copy" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg></button>
               </header>
               <ul class="statements" data-statements="objective"></ul>
               <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
@@ -477,6 +494,7 @@
                 <span class="note-section__letter" aria-hidden="true">A</span>
                 <h3 class="note-section__title" id="sec-a-title" data-i18n="soap.assessment">Assessment</h3>
                 <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Assessment" data-i18n-attr="aria-label:app.section.regenA" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+                <button class="icon-btn icon-btn--sm note-section__copy" type="button" data-action="copy-section" aria-label="Copy this section" data-i18n-attr="aria-label:app.section.copy" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg></button>
               </header>
               <ul class="statements" data-statements="assessment"></ul>
               <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
@@ -486,6 +504,7 @@
                 <span class="note-section__letter" aria-hidden="true">P</span>
                 <h3 class="note-section__title" id="sec-p-title" data-i18n="soap.plan">Plan</h3>
                 <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Plan" data-i18n-attr="aria-label:app.section.regenP" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+                <button class="icon-btn icon-btn--sm note-section__copy" type="button" data-action="copy-section" aria-label="Copy this section" data-i18n-attr="aria-label:app.section.copy" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg></button>
               </header>
               <ul class="statements" data-statements="plan"></ul>
               <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
@@ -535,7 +554,12 @@
           <label class="preset"><input type="radio" name="ob-preset" value="local"><span data-i18n="app.conn.localLabel">Ollama or LM Studio</span><small data-i18n="landing.models.local">local</small></label>
           <label class="preset"><input type="radio" name="ob-preset" value="custom"><span data-i18n="app.conn.custom">Other</span></label>
         </fieldset>
-        <div class="field">
+        <div class="field" id="ob-base-url-field" hidden>
+          <label class="field__label" for="ob-base-url" data-i18n="app.conn.baseUrl">Base URL</label>
+          <input class="input input--mono" id="ob-base-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:11434/v1" aria-describedby="ob-base-url-hint">
+          <p class="field__hint" id="ob-base-url-hint" data-i18n="app.conn.baseUrlHint">Include the API prefix, such as /v1. Local servers must allow requests from this page (CORS).</p>
+        </div>
+        <div class="field" id="ob-key-field">
           <label class="field__label" for="ob-key" data-i18n="app.conn.key">API key</label>
           <div class="input-group">
             <input class="input input--mono" id="ob-key" type="password" autocomplete="off" spellcheck="false" aria-describedby="ob-key-hint">
@@ -547,6 +571,7 @@
           <button class="btn btn--sm" id="ob-btn-test" type="button"><span class="spinner" aria-hidden="true"></span><span data-i18n="app.conn.test">Test connection</span></button>
           <p class="test-result__msg" id="ob-test-message"></p>
         </div>
+        <p class="field__hint" id="ob-privacy" data-i18n="app.conn.privacyCloud">Audio and text you send go to this provider and are handled under its terms. Check them before using real patient information.</p>
         <p class="field__hint" data-i18n="app.ob.later">You can add more connections, or change this one, in Settings.</p>
       </form>
 
@@ -717,6 +742,7 @@
               <button class="btn btn--sm" id="btn-test-connection" type="button"><span class="spinner" aria-hidden="true"></span><svg class="icon icon--sm test-result__icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plug"/></svg><span data-i18n="app.conn.test">Test connection</span></button>
               <p class="test-result__msg" id="conn-test-message"></p>
             </div>
+            <p class="field__hint" id="conn-test-hint"></p>
 
             <div class="conn-form__actions">
               <button class="btn btn--danger-quiet" type="button" id="btn-conn-remove" hidden><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-trash"/></svg><span data-i18n="app.conn.remove">Remove</span></button>
@@ -798,10 +824,11 @@
               <select class="select" id="pref-template" data-template-select>
                 <option value="general" data-i18n="templates.general">General practice</option>
                 <option value="neurology" data-i18n="templates.neurology">Neurology</option>
-                <option value="internal" data-i18n="templates.internal">Internal medicine</option>
+                <option value="emergency" data-i18n="templates.emergency">Emergency</option>
+                <option value="internal_medicine" data-i18n="templates.internal">Internal medicine</option>
                 <option value="pediatrics" data-i18n="templates.pediatrics">Paediatrics</option>
                 <option value="psychiatry" data-i18n="templates.psychiatry">Psychiatry</option>
-                <option value="emergency" data-i18n="templates.emergency">Emergency</option>
+                <option value="follow_up" data-i18n="templates.followUp">Follow-up visit</option>
               </select>
             </div>
           </div>
@@ -829,6 +856,7 @@
             </span>
             <input type="checkbox" role="switch" id="pref-history">
           </label>
+          <p class="field__hint" id="pref-history-unavailable" hidden data-i18n="app.privacy.historyUnavailable">This browser does not allow on-device storage here (for example in a private window), so history cannot be turned on. Everything else works.</p>
           <div class="field" id="pref-autodelete-field">
             <label class="field__label" for="pref-autodelete" data-i18n="app.privacy.autodelete">Delete saved sessions automatically</label>
             <select class="select select--fit" id="pref-autodelete">
@@ -837,6 +865,10 @@
               <option value="30" data-i18n="app.privacy.after30">After 30 days</option>
               <option value="0" data-i18n="app.privacy.never">Never</option>
             </select>
+          </div>
+          <div class="callout callout--review" id="storage-blocked" hidden>
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-alert"/></svg>
+            <div class="callout__body"><p data-i18n="app.privacy.storageBlocked">This browser is blocking site storage. Connections, keys and preferences are kept only until you close this page.</p></div>
           </div>
           <div class="storage-summary">
             <p class="field__label" data-i18n="app.privacy.onDevice">Stored on this device</p>
