@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Workspace | Medical AI Scribe</title>
+  <meta name="description" content="Turn a consultation into a SOAP note draft for clinician review, with your own AI model.">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4f6f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1517" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+  <link rel="manifest" href="/assets/manifest.webmanifest">
+  <link rel="preload" href="/assets/fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/source-serif-4-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="/assets/js/theme-boot.js"></script>
+  <script type="module" src="/assets/js/app-ui.js"></script>
+</head>
+<body class="app">
+  <a class="skip-link" href="#workspace" data-i18n="common.skipWorkspace">Skip to workspace</a>
+
+  <div class="js-required-notice fallback" role="alert">
+    <h1 class="fallback__title">Medical AI Scribe needs JavaScript</h1>
+    <p>The workspace runs entirely in your browser, so it cannot work with JavaScript turned off. Turn it on for this site and reload, or read how it works on the <a href="/">project page</a>.</p>
+  </div>
+  <div class="fallback" id="unsupported" role="alert" hidden>
+    <h1 class="fallback__title" data-i18n="app.unsupported.title">This browser is missing features the workspace needs</h1>
+    <p data-i18n="app.unsupported.text">Use a current version of Chrome, Edge, Firefox or Safari. Recording also needs a secure (HTTPS) connection.</p>
+    <p class="fallback__detail" id="unsupported-detail"></p>
+  </div>
+
+  <!-- ============ App header ============ -->
+  <header class="app-header js-only">
+    <a class="brand" href="/" aria-label="Medical AI Scribe, project page" data-i18n-attr="aria-label:app.brandLabel">
+      <svg class="brand__mark" viewBox="0 0 28 28" aria-hidden="true"><rect class="mark-sheet" x="3" y="2" width="18" height="24" rx="4"/><path class="mark-line" d="M7.5 9h9M7.5 14h5M7.5 19h7" stroke-width="2" stroke-linecap="round"/><path class="mark-link" d="M14.5 14h6.5" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 3.4"/><circle class="mark-dot" cx="24" cy="14" r="2.6"/></svg>
+      <span class="brand__name">Medical AI Scribe</span>
+    </a>
+
+    <!-- Connection status. data-state: none | checking | ok | error | server | example -->
+    <button class="conn-chip" id="connection-chip" type="button" data-state="none" data-open-settings="connections" aria-describedby="connection-chip-detail">
+      <span class="conn-chip__dot" aria-hidden="true"></span>
+      <span class="conn-chip__label" id="connection-chip-label" data-i18n="app.conn.none">No AI connected</span>
+      <span class="sr-only" id="connection-chip-detail" data-i18n="app.conn.open">Open connection settings</span>
+    </button>
+
+    <ol class="stepper" aria-label="Progress" data-i18n-attr="aria-label:app.stepper.label">
+      <li class="stepper__step" data-stage-step="capture" aria-current="step"><span class="stepper__num" aria-hidden="true">1</span><span data-i18n="app.stage.capture">Capture</span></li>
+      <li class="stepper__step" data-stage-step="transcript"><span class="stepper__num" aria-hidden="true">2</span><span data-i18n="app.stage.transcript">Transcript</span></li>
+      <li class="stepper__step" data-stage-step="note"><span class="stepper__num" aria-hidden="true">3</span><span data-i18n="app.stage.note">Draft</span></li>
+    </ol>
+
+    <div class="app-header__tools">
+      <div class="segmented segmented--lang hide-sm" role="group" aria-label="Interface language" data-i18n-attr="aria-label:common.uiLanguage">
+        <button type="button" data-set-lang="en" aria-pressed="true" lang="en">EN</button>
+        <button type="button" data-set-lang="id" aria-pressed="false" lang="id">ID</button>
+      </div>
+      <button class="icon-btn hide-sm" type="button" data-action="toggle-theme" aria-label="Switch to dark theme" data-i18n-attr="aria-label:common.themeToDark" data-tooltip="">
+        <svg class="icon icon--theme-light" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-moon"/></svg>
+        <svg class="icon icon--theme-dark" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-sun"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-history" type="button" data-open-dialog="history-drawer" aria-label="Session history" data-i18n-attr="aria-label:app.history.title" data-tooltip="" data-shortcut="H">
+        <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-history"/></svg>
+      </button>
+      <div class="menu-anchor">
+        <button class="icon-btn" id="btn-help" type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="help-menu" aria-label="Help" data-i18n-attr="aria-label:app.help.label" data-tooltip="">
+          <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-help"/></svg>
+        </button>
+        <div class="menu" id="help-menu" role="menu" data-placement="bottom" hidden>
+          <button class="menu__item" type="button" role="menuitem" data-open-dialog="shortcuts-dialog"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-keyboard"/></svg><span data-i18n="app.help.shortcuts">Keyboard shortcuts</span><span class="menu__hint">?</span></button>
+          <button class="menu__item" type="button" role="menuitem" data-open-dialog="onboarding-dialog"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-info"/></svg><span data-i18n="app.help.welcome">Welcome guide</span></button>
+          <div class="menu__sep" role="separator"></div>
+          <a class="menu__item" role="menuitem" href="https://github.com/arthamegayasa/medical-ai-scribe#readme"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-doc"/></svg><span data-i18n="app.help.docs">Documentation</span></a>
+          <a class="menu__item" role="menuitem" href="https://github.com/arthamegayasa/medical-ai-scribe/issues"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-github"/></svg><span data-i18n="app.help.issue">Report an issue</span></a>
+        </div>
+      </div>
+      <button class="icon-btn" id="btn-settings" type="button" data-open-settings="general" aria-label="Settings" data-i18n-attr="aria-label:app.settings.title" data-tooltip="" data-shortcut=",">
+        <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-settings"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ Workspace ============
+       data-stage: capture | transcript | note   (furthest stage reached; drives the stepper)
+       data-pane:  source | note                 (which pane is visible below 960px) -->
+  <main class="workspace js-only" id="workspace" data-stage="capture" data-pane="source" tabindex="-1">
+    <h1 class="sr-only" data-i18n="app.title">Consultation workspace</h1>
+
+    <div class="pane-switch" role="tablist" data-tabs-manual aria-label="Workspace view" data-i18n-attr="aria-label:app.paneSwitch">
+      <button class="pane-switch__btn" type="button" role="tab" id="pane-tab-source" aria-controls="pane-source" aria-selected="true" data-pane-target="source">
+        <span data-i18n="app.pane.source">Consultation</span>
+      </button>
+      <button class="pane-switch__btn" type="button" role="tab" id="pane-tab-note" aria-controls="pane-note" aria-selected="false" data-pane-target="note">
+        <span data-i18n="app.pane.note">Draft</span>
+        <span class="badge badge--review" id="pane-note-flags" hidden>0</span>
+      </button>
+    </div>
+
+    <!-- ======== Source pane: capture + transcript ======== -->
+    <section class="pane pane--source" id="pane-source" aria-labelledby="pane-source-title" role="tabpanel">
+      <header class="pane__head">
+        <h2 class="pane__title" id="pane-source-title" data-i18n="app.pane.source">Consultation</h2>
+        <div class="pane__actions">
+          <button class="btn btn--ghost btn--sm" id="btn-load-example" type="button">
+            <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-doc"/></svg>
+            <span data-i18n="app.example.load">Load fictional example</span>
+          </button>
+          <button class="btn btn--ghost btn--sm" id="btn-new-session" type="button" hidden>
+            <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg>
+            <span data-i18n="app.session.new">New session</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="callout callout--accent example-band" id="example-band" hidden>
+        <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-info"/></svg>
+        <div class="callout__body">
+          <p class="callout__title" data-i18n="app.example.bandTitle">Fictional example</p>
+          <p data-i18n="app.example.bandText">This consultation was written for demonstration. No real patient is involved, and the draft was prepared in advance, so no AI request is made.</p>
+        </div>
+      </div>
+
+      <!-- ---- Capture ----
+           data-state:  idle | requesting | recording | paused | processing | error | denied
+           data-method: record | upload | paste -->
+      <div class="capture" id="capture" data-state="idle" data-method="record">
+        <div class="tabs capture__tabs" role="tablist" aria-label="Capture method" data-i18n-attr="aria-label:app.capture.method">
+          <button class="tab" type="button" role="tab" id="capture-tab-record" aria-controls="capture-panel-record" aria-selected="true" data-capture-method="record"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-mic"/></svg><span data-i18n="app.capture.record">Record</span></button>
+          <button class="tab" type="button" role="tab" id="capture-tab-upload" aria-controls="capture-panel-upload" aria-selected="false" tabindex="-1" data-capture-method="upload"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-upload"/></svg><span data-i18n="app.capture.upload">Upload</span></button>
+          <button class="tab" type="button" role="tab" id="capture-tab-paste" aria-controls="capture-panel-paste" aria-selected="false" tabindex="-1" data-capture-method="paste"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-paste"/></svg><span data-i18n="app.capture.paste">Paste text</span></button>
+        </div>
+
+        <!-- Record -->
+        <div class="capture__panel" id="capture-panel-record" role="tabpanel" aria-labelledby="capture-tab-record">
+          <div class="capture-stage capture-stage--idle" data-show-when="idle">
+            <button class="rec-button" id="btn-record" type="button" aria-describedby="record-hint">
+              <span class="rec-button__ring" aria-hidden="true"><svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-mic"/></svg></span>
+              <span class="rec-button__label" data-i18n="app.capture.start">Start recording</span>
+            </button>
+            <p class="capture__hint" id="record-hint" data-i18n="app.capture.recordHint">Ask the patient's permission first. Audio is sent to your transcription model when you stop, in segments if it is long.</p>
+            <div class="capture__options">
+              <label class="field field--inline">
+                <span class="field__label" data-i18n="app.capture.audioLang">Spoken language</span>
+                <select class="select select--sm" id="audio-language">
+                  <option value="auto" data-i18n="app.capture.autoDetect">Detect automatically</option>
+                  <option value="id">Bahasa Indonesia</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="capture-stage capture-stage--requesting" data-show-when="requesting">
+            <span class="spinner spinner--lg" aria-hidden="true"></span>
+            <p class="capture-stage__title" data-i18n="app.capture.requesting">Waiting for microphone permission</p>
+            <p class="capture__hint" data-i18n="app.capture.requestingHint">Your browser will ask whether this page may use the microphone. Choose Allow to begin.</p>
+          </div>
+
+          <div class="capture-stage capture-stage--live" data-show-when="recording paused">
+            <div class="rec-status">
+              <span class="rec-status__dot" aria-hidden="true"></span>
+              <span class="rec-status__label" id="rec-status-label" data-i18n="app.capture.recording">Recording</span>
+            </div>
+            <p class="rec-timer" id="rec-timer" role="timer" aria-live="off">00:00</p>
+            <!-- Level meter: set --level (0 to 1) on #rec-meter, or --h (0 to 1) on each .meter__bar for a waveform. -->
+            <div class="meter" id="rec-meter" aria-hidden="true">
+              <span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span><span class="meter__bar"></span>
+            </div>
+            <p class="capture__hint" id="rec-segment-hint"></p>
+            <div class="rec-controls">
+              <button class="btn btn--lg" id="btn-pause" type="button" data-state="pause">
+                <svg class="icon icon--when-pause" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-pause"/></svg>
+                <svg class="icon icon--when-resume" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-play"/></svg>
+                <span class="label--when-pause" data-i18n="app.capture.pause">Pause</span>
+                <span class="label--when-resume" data-i18n="app.capture.resume">Resume</span>
+              </button>
+              <button class="btn btn--primary btn--lg" id="btn-stop" type="button">
+                <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-stop"/></svg>
+                <span data-i18n="app.capture.stop">Stop and transcribe</span>
+              </button>
+              <button class="btn btn--ghost btn--lg" id="btn-discard" type="button" data-i18n="app.capture.discard">Discard</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload -->
+        <div class="capture__panel" id="capture-panel-upload" role="tabpanel" aria-labelledby="capture-tab-upload" hidden>
+          <div class="capture-stage capture-stage--upload" data-show-when="idle">
+            <!-- data-drag="true" while a file is dragged over -->
+            <label class="dropzone" id="dropzone" data-drag="false" for="file-input">
+              <svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-upload"/></svg>
+              <span class="dropzone__title"><span data-i18n="app.upload.drop">Drop an audio file here, or</span> <span class="dropzone__choose" data-i18n="app.upload.choose">choose a file</span></span>
+              <span class="dropzone__hint" data-i18n="app.upload.formats">MP3, M4A, WAV, WebM, OGG or FLAC. Long files are sent in segments.</span>
+              <input class="sr-only" id="file-input" type="file" accept="audio/*,.m4a,.mp3,.mp4,.wav,.webm,.ogg,.flac">
+            </label>
+            <div class="file-row" id="upload-file" hidden>
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-wave"/></svg>
+              <div class="file-row__meta">
+                <p class="file-row__name" id="upload-file-name"></p>
+                <p class="file-row__info" id="upload-file-info"></p>
+              </div>
+              <button class="icon-btn icon-btn--sm" id="btn-remove-file" type="button" aria-label="Remove file" data-i18n-attr="aria-label:app.upload.remove"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+              <button class="btn btn--primary" id="btn-transcribe-file" type="button" data-i18n="app.upload.transcribe">Transcribe</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paste -->
+        <div class="capture__panel" id="capture-panel-paste" role="tabpanel" aria-labelledby="capture-tab-paste" hidden>
+          <div class="capture-stage capture-stage--paste" data-show-when="idle">
+            <label class="field">
+              <span class="field__label" data-i18n="app.paste.label">Transcript text</span>
+              <textarea class="textarea paste-input" id="paste-input" rows="10" spellcheck="true" placeholder="Paste or type the consultation. Lines starting with &quot;Doctor:&quot; or &quot;Patient:&quot; become labelled turns." data-i18n-attr="placeholder:app.paste.placeholder"></textarea>
+            </label>
+            <div class="paste-actions">
+              <span class="field__hint" id="paste-count">0 characters</span>
+              <button class="btn btn--primary" id="btn-use-paste" type="button" disabled data-i18n="app.paste.use">Use this transcript</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shared states (any method) -->
+        <div class="capture-stage capture-stage--processing" data-show-when="processing">
+          <p class="capture-stage__title" id="proc-title" data-i18n="app.proc.title">Transcribing</p>
+          <div class="progress" role="progressbar" aria-labelledby="proc-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="proc-progress"><div class="progress__bar" id="proc-progress-bar"></div></div>
+          <p class="proc-label" id="proc-label" aria-live="polite">Preparing audio</p>
+          <p class="capture__hint" data-i18n="app.proc.hint">Audio is going directly from this browser to your transcription model. Keep this tab open.</p>
+          <button class="btn btn--ghost" id="btn-cancel-processing" type="button" data-i18n="common.cancel">Cancel</button>
+        </div>
+
+        <div class="capture-stage capture-stage--error" data-show-when="error">
+          <div class="callout callout--danger" role="alert">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-alert-circle"/></svg>
+            <div class="callout__body">
+              <p class="callout__title" id="capture-error-title" data-i18n="app.captureError.title">Transcription stopped</p>
+              <p id="capture-error-message">The transcription model returned an error.</p>
+              <div class="callout__actions">
+                <button class="btn btn--sm" id="btn-capture-retry" type="button" data-i18n="common.tryAgain">Try again</button>
+                <button class="btn btn--sm btn--ghost" type="button" data-capture-method="paste" data-i18n="app.captureError.paste">Paste text instead</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="capture-stage capture-stage--denied" data-show-when="denied">
+          <div class="callout callout--review" role="alert">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-mic-off"/></svg>
+            <div class="callout__body">
+              <p class="callout__title" data-i18n="app.denied.title">Microphone access is blocked</p>
+              <ol class="steps-list">
+                <li data-i18n="app.denied.s1">Select the site settings icon at the left of the address bar.</li>
+                <li data-i18n="app.denied.s2">Set Microphone to Allow.</li>
+                <li data-i18n="app.denied.s3">Return here and try again. Some browsers need a reload.</li>
+              </ol>
+              <div class="callout__actions">
+                <button class="btn btn--sm" id="btn-denied-retry" type="button" data-i18n="common.tryAgain">Try again</button>
+                <button class="btn btn--sm btn--ghost" type="button" data-capture-method="upload" data-i18n="app.denied.upload">Upload a file instead</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Transcript ----
+           hidden until a transcript exists. data-mode: turns | plain. data-speakers: on | off -->
+      <div class="transcript" id="transcript" data-mode="turns" data-speakers="on" hidden>
+        <div class="transcript__toolbar">
+          <label class="switch switch--compact">
+            <span class="switch__text"><span class="field__label" data-i18n="app.transcript.speakers">Speaker labels</span></span>
+            <input type="checkbox" role="switch" id="toggle-speakers" checked>
+          </label>
+          <div class="transcript__toolbar-end">
+            <button class="icon-btn" id="btn-find" type="button" aria-label="Find in transcript" data-i18n-attr="aria-label:app.find.open" aria-expanded="false" aria-controls="find-bar" data-tooltip="" data-shortcut="Ctrl F">
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-search"/></svg>
+            </button>
+            <button class="icon-btn" id="btn-transcript-more" type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="transcript-menu" aria-label="More transcript actions" data-i18n-attr="aria-label:app.transcript.more">
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-more"/></svg>
+            </button>
+            <div class="menu" id="transcript-menu" role="menu" data-placement="bottom" hidden>
+              <button class="menu__item" type="button" role="menuitem" id="btn-add-turn"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg><span data-i18n="app.transcript.addTurn">Add a turn</span></button>
+              <button class="menu__item" type="button" role="menuitem" id="btn-copy-transcript"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg><span data-i18n="app.transcript.copy">Copy transcript</span></button>
+              <button class="menu__item" type="button" role="menuitem" id="btn-edit-vocab" data-open-settings="defaults"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-list"/></svg><span data-i18n="app.transcript.vocab">Edit vocabulary hints</span></button>
+              <div class="menu__sep" role="separator"></div>
+              <button class="menu__item" type="button" role="menuitem" id="btn-clear-transcript"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-trash"/></svg><span data-i18n="app.transcript.clear">Clear transcript</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="find-bar" id="find-bar" role="search" hidden>
+          <div class="input-group input-group--search">
+            <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-search"/></svg>
+            <input class="input" id="find-input" type="search" aria-label="Find in transcript" data-i18n-attr="aria-label:app.find.open,placeholder:app.find.placeholder" placeholder="Find in transcript" autocomplete="off">
+          </div>
+          <span class="find-bar__count" id="find-count" aria-live="polite"></span>
+          <button class="icon-btn icon-btn--sm" id="btn-find-prev" type="button" aria-label="Previous match" data-i18n-attr="aria-label:app.find.prev"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-chevron-left"/></svg></button>
+          <button class="icon-btn icon-btn--sm" id="btn-find-next" type="button" aria-label="Next match" data-i18n-attr="aria-label:app.find.next"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-chevron-right"/></svg></button>
+          <button class="icon-btn icon-btn--sm" id="btn-find-close" type="button" aria-label="Close find" data-i18n-attr="aria-label:app.find.close"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+        </div>
+
+        <!-- Turns mode: clone #tpl-turn into #turns. Find matches: wrap in <mark class="find-hit">, current one gets .is-current -->
+        <ol class="turns" id="turns" aria-label="Transcript turns" data-i18n-attr="aria-label:app.transcript.turns"></ol>
+
+        <!-- Plain mode -->
+        <label class="sr-only" for="transcript-plain" data-i18n="app.transcript.plainLabel">Transcript</label>
+        <textarea class="textarea transcript-plain" id="transcript-plain" spellcheck="true"></textarea>
+
+        <div class="transcript__footer">
+          <p class="transcript__meta" id="transcript-meta">
+            <span id="transcript-chars">0 characters</span>
+            <span id="transcript-duration" hidden></span>
+            <span id="transcript-turn-count" hidden></span>
+          </p>
+          <div class="generate-row">
+            <div class="generate-row__options">
+              <label class="sr-only" for="quick-template" data-i18n="app.note.template">Template</label>
+              <select class="select select--sm" id="quick-template" data-template-select>
+                <option value="general" data-i18n="templates.general">General practice</option>
+                <option value="neurology" data-i18n="templates.neurology">Neurology</option>
+                <option value="internal" data-i18n="templates.internal">Internal medicine</option>
+                <option value="pediatrics" data-i18n="templates.pediatrics">Paediatrics</option>
+                <option value="psychiatry" data-i18n="templates.psychiatry">Psychiatry</option>
+                <option value="emergency" data-i18n="templates.emergency">Emergency</option>
+              </select>
+              <label class="sr-only" for="quick-note-language" data-i18n="app.note.language">Note language</label>
+              <select class="select select--sm" id="quick-note-language" data-note-language-select>
+                <option value="en">English</option>
+                <option value="id">Bahasa Indonesia</option>
+              </select>
+            </div>
+            <button class="btn btn--primary btn--lg generate-row__go" id="btn-generate" type="button" aria-describedby="generate-hint">
+              <span data-i18n="app.note.generate">Write SOAP draft</span>
+              <kbd class="kbd--on-accent" aria-hidden="true">Ctrl</kbd><kbd class="kbd--on-accent" aria-hidden="true">Enter</kbd>
+            </button>
+          </div>
+          <p class="field__hint" id="generate-hint" data-i18n="app.note.generateHint">Check names, drugs, doses and numbers first. The note can only be as good as the transcript.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== Note pane ========
+         #note data-state: empty | generating | ready | error.  data-stale: true | false -->
+    <section class="pane pane--note" id="pane-note" aria-labelledby="pane-note-title" role="tabpanel">
+      <div class="note" id="note" data-state="empty" data-stale="false">
+        <header class="pane__head note__head">
+          <div class="note__heading">
+            <h2 class="pane__title" id="pane-note-title" data-i18n="app.note.title">SOAP draft</h2>
+            <span class="badge" id="note-template-badge" hidden></span>
+          </div>
+          <div class="pane__actions">
+            <div class="menu-anchor">
+              <button class="btn btn--sm" id="btn-export" type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu" disabled>
+                <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-download"/></svg>
+                <span data-i18n="app.export.label">Export</span>
+                <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-chevron-down"/></svg>
+              </button>
+              <div class="menu" id="export-menu" role="menu" data-placement="bottom" hidden>
+                <button class="menu__item" type="button" role="menuitem" data-export="copy"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-copy"/></svg><span data-i18n="app.export.copy">Copy to clipboard</span><span class="menu__hint">Ctrl Shift C</span></button>
+                <div class="menu__sep" role="separator"></div>
+                <button class="menu__item" type="button" role="menuitem" data-export="markdown"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-markdown"/></svg><span data-i18n="app.export.markdown">Markdown (.md)</span></button>
+                <button class="menu__item" type="button" role="menuitem" data-export="text"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-doc"/></svg><span data-i18n="app.export.text">Plain text (.txt)</span></button>
+                <button class="menu__item" type="button" role="menuitem" data-export="docx"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-file-word"/></svg><span data-i18n="app.export.docx">Word (.docx)</span></button>
+                <button class="menu__item" type="button" role="menuitem" data-export="print"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-printer"/></svg><span data-i18n="app.export.print">Print or save as PDF</span></button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Persistent draft treatment: always visible whenever a draft exists. -->
+        <div class="draft-band" data-show-when-note="generating ready">
+          <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-edit"/></svg>
+          <p><strong data-i18n="app.note.draftStrong">Draft.</strong> <span data-i18n="app.note.draftText">A clinician must review every statement before it is used.</span></p>
+        </div>
+
+        <div class="callout callout--review stale-banner" id="stale-banner" role="status">
+          <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-alert"/></svg>
+          <div class="callout__body">
+            <p class="callout__title" data-i18n="app.stale.title">The transcript changed after this draft was written</p>
+            <p data-i18n="app.stale.text">Links may point to edited lines and new details are not in the note. Exports will carry this warning until you rewrite the draft.</p>
+            <div class="callout__actions">
+              <button class="btn btn--sm" id="btn-regenerate-all" type="button">
+                <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg>
+                <span data-i18n="app.stale.rewrite">Rewrite draft</span>
+              </button>
+              <button class="btn btn--sm btn--ghost" id="btn-stale-dismiss" type="button" data-i18n="app.stale.keep">Keep this draft</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty -->
+        <div class="empty note-empty" data-show-when-note="empty">
+          <svg class="note-empty__art" viewBox="0 0 120 96" aria-hidden="true"><rect class="ne-sheet" x="30" y="6" width="60" height="84" rx="6"/><path class="ne-line" d="M42 24h36M42 36h24M42 52h36M42 64h18"/><path class="ne-link" d="M66 36h22" stroke-dasharray="1 5"/><circle class="ne-dot" cx="96" cy="36" r="5"/></svg>
+          <h3 class="empty__title" data-i18n="app.note.emptyTitle">The draft appears here</h3>
+          <p class="empty__text" data-i18n="app.note.emptyText">Capture the consultation and check the transcript. Each statement in the draft will link back to the words it came from.</p>
+          <button class="btn" id="btn-empty-example" type="button" data-i18n="app.example.try">Try the fictional example</button>
+        </div>
+
+        <!-- Generating: skeleton while streaming. Wiring may reveal finished sections early by removing [data-skeleton] from them. -->
+        <div class="note-generating" data-show-when-note="generating" aria-busy="true">
+          <div class="gen-status" role="status">
+            <span class="spinner" aria-hidden="true"></span>
+            <p id="gen-status-text">Writing the draft</p>
+            <button class="btn btn--ghost btn--sm" id="btn-cancel-generate" type="button" data-i18n="common.cancel">Cancel</button>
+          </div>
+          <div class="skeleton-sheet" aria-hidden="true">
+            <span class="skeleton skeleton--w40"></span>
+            <span class="skeleton skeleton--h skeleton--w20"></span>
+            <span class="skeleton skeleton--w90"></span><span class="skeleton skeleton--w75"></span><span class="skeleton skeleton--w60"></span>
+            <span class="skeleton skeleton--h skeleton--w20"></span>
+            <span class="skeleton skeleton--w80"></span><span class="skeleton skeleton--w50"></span>
+            <span class="skeleton skeleton--h skeleton--w20"></span>
+            <span class="skeleton skeleton--w70"></span>
+            <span class="skeleton skeleton--h skeleton--w20"></span>
+            <span class="skeleton skeleton--w85"></span><span class="skeleton skeleton--w45"></span>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div class="note-error" data-show-when-note="error">
+          <div class="callout callout--danger" role="alert">
+            <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-alert-circle"/></svg>
+            <div class="callout__body">
+              <p class="callout__title" id="note-error-title" data-i18n="app.noteError.title">The draft could not be written</p>
+              <p id="note-error-message">The note model returned an error.</p>
+              <div class="callout__actions">
+                <button class="btn btn--sm" id="btn-generate-retry" type="button" data-i18n="common.tryAgain">Try again</button>
+                <button class="btn btn--sm btn--ghost" type="button" data-open-settings="models" data-i18n="app.noteError.models">Check model settings</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ready -->
+        <div class="note-ready" data-show-when-note="ready">
+          <details class="flags" id="review-flags" open>
+            <summary class="flags__summary">
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-flag"/></svg>
+              <span data-i18n="app.flags.title">Needs review</span>
+              <span class="badge badge--review" id="flags-count">0</span>
+              <svg class="icon icon--sm flags__chev" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-chevron-down"/></svg>
+            </summary>
+            <ol class="flags__list" id="flags-list"></ol>
+            <p class="flags__none" id="flags-none" hidden data-i18n="app.flags.none">No open review points. You still need to read the whole draft.</p>
+          </details>
+
+          <article class="sheet" id="note-sheet" aria-labelledby="pane-note-title">
+            <section class="note-section note-section--cc" data-section="chief_complaint" data-state="idle" aria-labelledby="sec-cc-title">
+              <header class="note-section__head">
+                <h3 class="note-section__title" id="sec-cc-title" data-i18n="soap.chiefComplaint">Chief complaint</h3>
+              </header>
+              <ul class="statements" data-statements="chief_complaint"></ul>
+            </section>
+            <section class="note-section" data-section="subjective" data-state="idle" aria-labelledby="sec-s-title">
+              <header class="note-section__head">
+                <span class="note-section__letter" aria-hidden="true">S</span>
+                <h3 class="note-section__title" id="sec-s-title" data-i18n="soap.subjective">Subjective</h3>
+                <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Subjective" data-i18n-attr="aria-label:app.section.regenS" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+              </header>
+              <ul class="statements" data-statements="subjective"></ul>
+              <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
+            </section>
+            <section class="note-section" data-section="objective" data-state="idle" aria-labelledby="sec-o-title">
+              <header class="note-section__head">
+                <span class="note-section__letter" aria-hidden="true">O</span>
+                <h3 class="note-section__title" id="sec-o-title" data-i18n="soap.objective">Objective</h3>
+                <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Objective" data-i18n-attr="aria-label:app.section.regenO" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+              </header>
+              <ul class="statements" data-statements="objective"></ul>
+              <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
+            </section>
+            <section class="note-section" data-section="assessment" data-state="idle" aria-labelledby="sec-a-title">
+              <header class="note-section__head">
+                <span class="note-section__letter" aria-hidden="true">A</span>
+                <h3 class="note-section__title" id="sec-a-title" data-i18n="soap.assessment">Assessment</h3>
+                <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Assessment" data-i18n-attr="aria-label:app.section.regenA" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+              </header>
+              <ul class="statements" data-statements="assessment"></ul>
+              <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
+            </section>
+            <section class="note-section" data-section="plan" data-state="idle" aria-labelledby="sec-p-title">
+              <header class="note-section__head">
+                <span class="note-section__letter" aria-hidden="true">P</span>
+                <h3 class="note-section__title" id="sec-p-title" data-i18n="soap.plan">Plan</h3>
+                <button class="icon-btn icon-btn--sm note-section__regen" type="button" data-action="regenerate-section" aria-label="Rewrite Plan" data-i18n-attr="aria-label:app.section.regenP" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-refresh"/></svg></button>
+              </header>
+              <ul class="statements" data-statements="plan"></ul>
+              <button class="add-line" type="button" data-action="add-statement" data-i18n="app.section.addLine">Add a line</button>
+            </section>
+          </article>
+
+          <footer class="note__foot">
+            <p class="note-stats" id="note-stats"></p>
+            <p class="provenance" id="note-provenance"></p>
+          </footer>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ Onboarding (data-step: 1 | 2 | 3) ============ -->
+  <dialog class="dialog dialog--onboarding" id="onboarding-dialog" aria-labelledby="ob-title" data-step="1">
+    <header class="dialog__header">
+      <div>
+        <ol class="ob-progress" aria-label="Setup steps" data-i18n-attr="aria-label:app.ob.steps">
+          <li data-ob-dot="1" aria-current="step"><span class="sr-only" data-i18n="app.ob.dot1">Connect a provider</span></li>
+          <li data-ob-dot="2"><span class="sr-only" data-i18n="app.ob.dot2">Choose models</span></li>
+          <li data-ob-dot="3"><span class="sr-only" data-i18n="app.ob.dot3">Start</span></li>
+        </ol>
+        <h2 class="dialog__title" id="ob-title">
+          <span data-ob-step="1" data-i18n="app.ob.t1">Connect an AI provider</span>
+          <span data-ob-step="2" data-i18n="app.ob.t2">Choose your two models</span>
+          <span data-ob-step="3" data-i18n="app.ob.t3">You are ready</span>
+        </h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-dialog aria-label="Close" data-i18n-attr="aria-label:common.close"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+    </header>
+    <div class="dialog__body">
+      <!-- Step 1 -->
+      <form class="ob-step" data-ob-step="1" id="ob-connect-form" method="post" novalidate>
+        <p class="muted" data-i18n="app.ob.p1">Medical AI Scribe uses your own account with an AI provider. Your key stays in this browser and requests go straight to the provider.</p>
+        <fieldset class="preset-grid preset-grid--compact">
+          <legend class="field__label" data-i18n="app.conn.preset">Provider</legend>
+          <label class="preset"><input type="radio" name="ob-preset" value="openai" checked><span>OpenAI</span></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="anthropic"><span>Anthropic</span></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="gemini"><span>Google Gemini</span></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="openrouter"><span>OpenRouter</span></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="groq"><span>Groq</span></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="mistral"><span>Mistral</span></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="deepgram"><span>Deepgram</span><small data-i18n="app.conn.transcriptionOnly">audio only</small></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="elevenlabs"><span>ElevenLabs</span><small data-i18n="app.conn.transcriptionOnly">audio only</small></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="local"><span data-i18n="app.conn.localLabel">Ollama or LM Studio</span><small data-i18n="landing.models.local">local</small></label>
+          <label class="preset"><input type="radio" name="ob-preset" value="custom"><span data-i18n="app.conn.custom">Other</span></label>
+        </fieldset>
+        <div class="field">
+          <label class="field__label" for="ob-key" data-i18n="app.conn.key">API key</label>
+          <div class="input-group">
+            <input class="input input--mono" id="ob-key" type="password" autocomplete="off" spellcheck="false" aria-describedby="ob-key-hint">
+            <button class="icon-btn input-group__action" type="button" data-toggle-password="ob-key" aria-label="Show key" aria-pressed="false" data-i18n-attr="aria-label:app.conn.showKey"><svg class="icon icon--when-hidden" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-eye"/></svg><svg class="icon icon--when-shown" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-eye-off"/></svg></button>
+          </div>
+          <p class="field__hint" id="ob-key-hint"><a id="ob-key-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" data-i18n="app.conn.whereKey">Where do I get a key?</a></p>
+        </div>
+        <div class="test-result" id="ob-test-result" data-state="idle" aria-live="polite">
+          <button class="btn btn--sm" id="ob-btn-test" type="button"><span class="spinner" aria-hidden="true"></span><span data-i18n="app.conn.test">Test connection</span></button>
+          <p class="test-result__msg" id="ob-test-message"></p>
+        </div>
+        <p class="field__hint" data-i18n="app.ob.later">You can add more connections, or change this one, in Settings.</p>
+      </form>
+
+      <!-- Step 2 -->
+      <div class="ob-step" data-ob-step="2">
+        <p class="muted" data-i18n="app.ob.p2">One model turns audio into text. Another writes the note. They can come from different providers.</p>
+        <div class="field">
+          <label class="field__label" for="ob-model-transcription" data-i18n="app.models.transcription">Transcription model</label>
+          <select class="select" id="ob-model-transcription"><option value="" data-i18n="app.models.loading">Loading models</option></select>
+          <p class="field__hint" data-i18n="app.models.transcriptionHint">Only needed for recording and uploads. Pasted text skips this step.</p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="ob-model-note" data-i18n="app.models.note">Note model</label>
+          <select class="select" id="ob-model-note"><option value="" data-i18n="app.models.loading">Loading models</option></select>
+          <p class="field__hint" data-i18n="app.models.noteHint">A capable text model that can return structured output.</p>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="ob-step" data-ob-step="3">
+        <p class="muted" data-i18n="app.ob.p3">Start with the fictional example to see every step, or begin with your own consultation.</p>
+        <div class="choice-grid">
+          <button class="choice" type="button" id="ob-choose-example" data-close-dialog>
+            <svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-doc"/></svg>
+            <span class="choice__title" data-i18n="app.example.try">Try the fictional example</span>
+            <span class="choice__text" data-i18n="app.ob.exampleText">A written consultation with a prepared draft. No AI request is made.</span>
+          </button>
+          <button class="choice" type="button" id="ob-choose-capture" data-close-dialog>
+            <svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-mic"/></svg>
+            <span class="choice__title" data-i18n="app.ob.captureTitle">Start capturing</span>
+            <span class="choice__text" data-i18n="app.ob.captureText">Record, upload or paste a consultation of your own.</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <footer class="dialog__footer dialog__footer--split">
+      <button class="btn btn--ghost" type="button" id="ob-skip" data-close-dialog data-i18n="app.ob.skip">Skip setup</button>
+      <div class="dialog__footer-end">
+        <button class="btn" type="button" id="ob-back" data-ob-nav="back" data-i18n="common.back">Back</button>
+        <button class="btn btn--primary" type="button" id="ob-next" data-ob-nav="next" data-i18n="common.continue">Continue</button>
+      </div>
+    </footer>
+  </dialog>
+
+  <!-- ============ Settings ============ -->
+  <dialog class="dialog dialog--wide dialog--settings" id="settings-dialog" aria-labelledby="settings-title">
+    <header class="dialog__header">
+      <h2 class="dialog__title" id="settings-title" data-i18n="app.settings.title">Settings</h2>
+      <button class="icon-btn" type="button" data-close-dialog aria-label="Close" data-i18n-attr="aria-label:common.close"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+    </header>
+    <div class="settings">
+      <div class="settings__nav" role="tablist" aria-orientation="vertical" aria-label="Settings sections" data-i18n-attr="aria-label:app.settings.sections">
+        <button class="settings__tab" type="button" role="tab" id="set-tab-general" aria-controls="set-general" aria-selected="true" data-settings-tab="general"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-settings"/></svg><span data-i18n="app.settings.general">General</span></button>
+        <button class="settings__tab" type="button" role="tab" id="set-tab-connections" aria-controls="set-connections" aria-selected="false" tabindex="-1" data-settings-tab="connections"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plug"/></svg><span data-i18n="app.settings.connections">Connections</span></button>
+        <button class="settings__tab" type="button" role="tab" id="set-tab-models" aria-controls="set-models" aria-selected="false" tabindex="-1" data-settings-tab="models"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-cpu"/></svg><span data-i18n="app.settings.models">Models</span></button>
+        <button class="settings__tab" type="button" role="tab" id="set-tab-defaults" aria-controls="set-defaults" aria-selected="false" tabindex="-1" data-settings-tab="defaults"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-template"/></svg><span data-i18n="app.settings.defaults">Note defaults</span></button>
+        <button class="settings__tab" type="button" role="tab" id="set-tab-privacy" aria-controls="set-privacy" aria-selected="false" tabindex="-1" data-settings-tab="privacy"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-shield"/></svg><span data-i18n="app.settings.privacy">Privacy and storage</span></button>
+        <button class="settings__tab" type="button" role="tab" id="set-tab-access" aria-controls="set-access" aria-selected="false" tabindex="-1" data-settings-tab="access" hidden><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-lock"/></svg><span data-i18n="app.settings.access">Workspace access</span></button>
+      </div>
+
+      <div class="settings__panels">
+        <!-- General -->
+        <section class="settings__panel" id="set-general" role="tabpanel" aria-labelledby="set-tab-general">
+          <h3 class="settings__heading" data-i18n="app.settings.general">General</h3>
+          <fieldset class="field">
+            <legend class="field__label" data-i18n="app.general.theme">Theme</legend>
+            <div class="segmented" id="theme-choice">
+              <input type="radio" name="theme" id="theme-system" value="system" checked><label for="theme-system"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-monitor"/></svg><span data-i18n="app.general.system">System</span></label>
+              <input type="radio" name="theme" id="theme-light" value="light"><label for="theme-light"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-sun"/></svg><span data-i18n="app.general.light">Light</span></label>
+              <input type="radio" name="theme" id="theme-dark" value="dark"><label for="theme-dark"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-moon"/></svg><span data-i18n="app.general.dark">Dark</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend class="field__label" data-i18n="common.uiLanguage">Interface language</legend>
+            <div class="segmented" id="lang-choice">
+              <input type="radio" name="ui-lang" id="lang-en" value="en" checked><label for="lang-en" lang="en">English</label>
+              <input type="radio" name="ui-lang" id="lang-id" value="id"><label for="lang-id" lang="id">Bahasa Indonesia</label>
+            </div>
+            <p class="field__hint" data-i18n="app.general.langHint">Changes the interface only. Set the note language under Note defaults.</p>
+          </fieldset>
+          <div class="field">
+            <span class="field__label" data-i18n="app.general.guide">Welcome guide</span>
+            <div><button class="btn btn--sm" type="button" data-open-dialog="onboarding-dialog" data-i18n="app.general.showGuide">Show the welcome guide</button></div>
+          </div>
+        </section>
+
+        <!-- Connections. data-view: list | edit -->
+        <section class="settings__panel" id="set-connections" role="tabpanel" aria-labelledby="set-tab-connections" data-view="list" hidden>
+          <div class="conn-list-view" data-show-when-view="list">
+            <div class="settings__heading-row">
+              <h3 class="settings__heading" data-i18n="app.settings.connections">Connections</h3>
+              <button class="btn btn--sm btn--primary" id="btn-add-connection" type="button"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plus"/></svg><span data-i18n="app.conn.add">Add connection</span></button>
+            </div>
+            <p class="muted settings__intro" data-i18n="app.conn.intro">Each connection is one provider account or local server. Keys never leave this browser except in requests to that provider.</p>
+            <ul class="conn-list" id="connections-list"></ul>
+            <div class="empty empty--compact" id="connections-empty">
+              <svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plug"/></svg>
+              <p class="empty__title" data-i18n="app.conn.emptyTitle">No connections yet</p>
+              <p class="empty__text" data-i18n="app.conn.emptyText">Add a provider to transcribe and draft your own consultations. The fictional example works without one.</p>
+            </div>
+            <div class="callout" id="server-mode-note" hidden>
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-server"/></svg>
+              <div class="callout__body">
+                <p class="callout__title" data-i18n="app.conn.serverTitle">This workspace provides its own models</p>
+                <p data-i18n="app.conn.serverText">The server holds the provider keys. Audio and text pass through it on the way to the provider.</p>
+              </div>
+            </div>
+          </div>
+
+          <form class="conn-form" id="connection-form" data-show-when-view="edit" method="post" novalidate>
+            <div class="settings__heading-row">
+              <button class="icon-btn icon-btn--sm" type="button" id="btn-conn-back" aria-label="Back to connections" data-i18n-attr="aria-label:app.conn.back"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-chevron-left"/></svg></button>
+              <h3 class="settings__heading" id="conn-form-title" data-i18n="app.conn.addTitle">Add a connection</h3>
+            </div>
+
+            <fieldset class="preset-grid">
+              <legend class="field__label" data-i18n="app.conn.preset">Provider</legend>
+              <label class="preset"><input type="radio" name="conn-preset" value="openai" checked><span>OpenAI</span></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="anthropic"><span>Anthropic</span></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="gemini"><span>Google Gemini</span></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="openrouter"><span>OpenRouter</span></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="groq"><span>Groq</span></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="mistral"><span>Mistral</span></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="deepgram"><span>Deepgram</span><small data-i18n="app.conn.transcriptionOnly">audio only</small></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="elevenlabs"><span>ElevenLabs</span><small data-i18n="app.conn.transcriptionOnly">audio only</small></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="local"><span data-i18n="app.conn.localLabel">Ollama or LM Studio</span><small data-i18n="landing.models.local">local</small></label>
+              <label class="preset"><input type="radio" name="conn-preset" value="custom"><span data-i18n="app.conn.customLong">OpenAI-compatible</span></label>
+            </fieldset>
+
+            <div class="field">
+              <label class="field__label" for="conn-name" data-i18n="app.conn.name">Name</label>
+              <input class="input" id="conn-name" type="text" autocomplete="off" placeholder="OpenAI" maxlength="60">
+            </div>
+
+            <!-- Shown for presets that need a key. Hide with [hidden] for local presets without auth. -->
+            <div class="field" id="conn-key-field">
+              <label class="field__label" for="conn-key" data-i18n="app.conn.key">API key</label>
+              <div class="input-group">
+                <input class="input input--mono" id="conn-key" type="password" autocomplete="off" spellcheck="false" aria-describedby="conn-key-hint conn-key-error">
+                <button class="icon-btn input-group__action" type="button" data-toggle-password="conn-key" aria-label="Show key" aria-pressed="false" data-i18n-attr="aria-label:app.conn.showKey"><svg class="icon icon--when-hidden" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-eye"/></svg><svg class="icon icon--when-shown" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-eye-off"/></svg></button>
+              </div>
+              <p class="field__hint" id="conn-key-hint"><a id="conn-key-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer"><span data-i18n="app.conn.whereKey">Where do I get a key?</span><svg class="icon icon--sm icon--inline" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-external"/></svg></a></p>
+              <p class="field__error" id="conn-key-error" hidden></p>
+            </div>
+
+            <fieldset class="field" id="conn-remember-field">
+              <legend class="field__label" data-i18n="app.conn.keep">Keep the key</legend>
+              <label class="check"><input type="radio" name="conn-remember" value="session" checked><span><strong data-i18n="app.conn.keepTab">For this tab only.</strong> <span class="muted" data-i18n="app.conn.keepTabHint">Forgotten when you close the tab.</span></span></label>
+              <label class="check"><input type="radio" name="conn-remember" value="device"><span><strong data-i18n="app.conn.keepDevice">Remember on this device.</strong> <span class="muted" data-i18n="app.conn.keepDeviceHint">Stored in this browser's storage. Anyone using this browser profile could use it.</span></span></label>
+            </fieldset>
+
+            <!-- Shown for custom and local presets -->
+            <div class="field" id="conn-base-url-field" hidden>
+              <label class="field__label" for="conn-base-url" data-i18n="app.conn.baseUrl">Base URL</label>
+              <input class="input input--mono" id="conn-base-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:11434/v1" aria-describedby="conn-base-url-hint">
+              <p class="field__hint" id="conn-base-url-hint" data-i18n="app.conn.baseUrlHint">Include the API prefix, such as /v1. Local servers must allow requests from this page (CORS).</p>
+            </div>
+
+            <div class="callout conn-privacy" id="conn-privacy-note">
+              <svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-shield"/></svg>
+              <div class="callout__body">
+                <p id="conn-privacy-text" data-i18n="app.conn.privacyCloud">Audio and text you send go to this provider and are handled under its terms. Check them before using real patient information.</p>
+              </div>
+            </div>
+
+            <!-- data-state: idle | testing | ok | error -->
+            <div class="test-result" id="conn-test-result" data-state="idle" aria-live="polite">
+              <button class="btn btn--sm" id="btn-test-connection" type="button"><span class="spinner" aria-hidden="true"></span><svg class="icon icon--sm test-result__icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-plug"/></svg><span data-i18n="app.conn.test">Test connection</span></button>
+              <p class="test-result__msg" id="conn-test-message"></p>
+            </div>
+
+            <div class="conn-form__actions">
+              <button class="btn btn--danger-quiet" type="button" id="btn-conn-remove" hidden><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-trash"/></svg><span data-i18n="app.conn.remove">Remove</span></button>
+              <span class="spacer"></span>
+              <button class="btn" type="button" id="btn-conn-cancel" data-i18n="common.cancel">Cancel</button>
+              <button class="btn btn--primary" type="submit" id="btn-conn-save" data-i18n="app.conn.save">Save connection</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Models -->
+        <section class="settings__panel" id="set-models" role="tabpanel" aria-labelledby="set-tab-models" hidden>
+          <h3 class="settings__heading" data-i18n="app.settings.models">Models</h3>
+          <p class="muted settings__intro" data-i18n="app.models.intro">The list comes live from each connection. If a model is missing, type its ID.</p>
+
+          <!-- Model picker. data-state: idle | loading | ready | error | manual. Clone #tpl-model-option into the listbox. -->
+          <div class="model-picker" id="picker-transcription" data-state="idle" data-role="transcription">
+            <h4 class="model-picker__title" data-i18n="app.models.transcription">Transcription model</h4>
+            <div class="model-picker__row">
+              <div class="field">
+                <label class="field__label" for="model-transcription-conn" data-i18n="app.models.connection">Connection</label>
+                <select class="select" id="model-transcription-conn"></select>
+              </div>
+              <div class="field model-picker__search">
+                <label class="field__label" for="model-transcription-input" data-i18n="app.models.model">Model</label>
+                <div class="combo">
+                  <input class="input input--mono" id="model-transcription-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="model-transcription-list" autocomplete="off" spellcheck="false" placeholder="Search models" data-i18n-attr="placeholder:app.models.search">
+                  <span class="spinner combo__spinner" aria-hidden="true"></span>
+                  <ul class="combo__list" id="model-transcription-list" role="listbox" aria-label="Transcription models" data-i18n-attr="aria-label:app.models.transcriptionList" hidden></ul>
+                </div>
+              </div>
+            </div>
+            <p class="model-picker__status field__hint" id="model-transcription-status" aria-live="polite"></p>
+            <p class="model-picker__error field__error" id="model-transcription-error" hidden></p>
+            <div class="model-picker__links">
+              <button class="link-btn" type="button" data-action="refresh-models" data-i18n="app.models.refresh">Refresh list</button>
+              <button class="link-btn" type="button" data-action="manual-model" data-i18n="app.models.manual">Enter a model ID instead</button>
+            </div>
+          </div>
+
+          <div class="model-picker" id="picker-note" data-state="idle" data-role="note">
+            <h4 class="model-picker__title" data-i18n="app.models.note">Note model</h4>
+            <div class="model-picker__row">
+              <div class="field">
+                <label class="field__label" for="model-note-conn" data-i18n="app.models.connection">Connection</label>
+                <select class="select" id="model-note-conn"></select>
+              </div>
+              <div class="field model-picker__search">
+                <label class="field__label" for="model-note-input" data-i18n="app.models.model">Model</label>
+                <div class="combo">
+                  <input class="input input--mono" id="model-note-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="model-note-list" autocomplete="off" spellcheck="false" placeholder="Search models" data-i18n-attr="placeholder:app.models.search">
+                  <span class="spinner combo__spinner" aria-hidden="true"></span>
+                  <ul class="combo__list" id="model-note-list" role="listbox" aria-label="Note models" data-i18n-attr="aria-label:app.models.noteList" hidden></ul>
+                </div>
+              </div>
+            </div>
+            <p class="model-picker__status field__hint" id="model-note-status" aria-live="polite"></p>
+            <p class="model-picker__error field__error" id="model-note-error" hidden></p>
+            <div class="model-picker__links">
+              <button class="link-btn" type="button" data-action="refresh-models" data-i18n="app.models.refresh">Refresh list</button>
+              <button class="link-btn" type="button" data-action="manual-model" data-i18n="app.models.manual">Enter a model ID instead</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Note defaults -->
+        <section class="settings__panel" id="set-defaults" role="tabpanel" aria-labelledby="set-tab-defaults" hidden>
+          <h3 class="settings__heading" data-i18n="app.settings.defaults">Note defaults</h3>
+          <div class="settings__grid">
+            <div class="field">
+              <label class="field__label" for="pref-note-language" data-i18n="app.note.language">Note language</label>
+              <select class="select" id="pref-note-language" data-note-language-select>
+                <option value="en">English</option>
+                <option value="id">Bahasa Indonesia</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field__label" for="pref-template" data-i18n="app.note.template">Template</label>
+              <select class="select" id="pref-template" data-template-select>
+                <option value="general" data-i18n="templates.general">General practice</option>
+                <option value="neurology" data-i18n="templates.neurology">Neurology</option>
+                <option value="internal" data-i18n="templates.internal">Internal medicine</option>
+                <option value="pediatrics" data-i18n="templates.pediatrics">Paediatrics</option>
+                <option value="psychiatry" data-i18n="templates.psychiatry">Psychiatry</option>
+                <option value="emergency" data-i18n="templates.emergency">Emergency</option>
+              </select>
+            </div>
+          </div>
+          <label class="switch">
+            <span class="switch__text">
+              <span class="field__label" data-i18n="app.transcript.speakers">Speaker labels</span>
+              <span class="field__hint" data-i18n="app.defaults.speakersHint">Ask the transcription step to label turns as Doctor or Patient. Labels are a best guess; check them.</span>
+            </span>
+            <input type="checkbox" role="switch" id="pref-speakers" checked>
+          </label>
+          <div class="field">
+            <label class="field__label" for="pref-vocab" data-i18n="app.defaults.vocab">Vocabulary hints</label>
+            <textarea class="textarea" id="pref-vocab" rows="4" spellcheck="false" aria-describedby="pref-vocab-hint" placeholder="levetiracetam, Tinel's sign, EMG" data-i18n-attr="placeholder:app.defaults.vocabPlaceholder"></textarea>
+            <p class="field__hint" id="pref-vocab-hint" data-i18n="app.defaults.vocabHint">Drug names, eponyms and local terms the transcription model should expect, separated by commas or new lines.</p>
+          </div>
+        </section>
+
+        <!-- Privacy and storage -->
+        <section class="settings__panel" id="set-privacy" role="tabpanel" aria-labelledby="set-tab-privacy" hidden>
+          <h3 class="settings__heading" data-i18n="app.settings.privacy">Privacy and storage</h3>
+          <label class="switch">
+            <span class="switch__text">
+              <span class="field__label" data-i18n="app.privacy.history">Keep session history on this device</span>
+              <span class="field__hint" data-i18n="app.privacy.historyHint">Off by default. When on, transcripts and drafts are saved in this browser only, never on a server.</span>
+            </span>
+            <input type="checkbox" role="switch" id="pref-history">
+          </label>
+          <div class="field" id="pref-autodelete-field">
+            <label class="field__label" for="pref-autodelete" data-i18n="app.privacy.autodelete">Delete saved sessions automatically</label>
+            <select class="select select--fit" id="pref-autodelete">
+              <option value="1" data-i18n="app.privacy.after1">After 1 day</option>
+              <option value="7" selected data-i18n="app.privacy.after7">After 7 days</option>
+              <option value="30" data-i18n="app.privacy.after30">After 30 days</option>
+              <option value="0" data-i18n="app.privacy.never">Never</option>
+            </select>
+          </div>
+          <div class="storage-summary">
+            <p class="field__label" data-i18n="app.privacy.onDevice">Stored on this device</p>
+            <ul class="storage-summary__list" id="storage-summary">
+              <li><span data-i18n="app.privacy.sumSessions">Saved sessions</span><span id="storage-sessions">0</span></li>
+              <li><span data-i18n="app.privacy.sumKeys">Remembered keys</span><span id="storage-keys">0</span></li>
+              <li><span data-i18n="app.privacy.sumPrefs">Preferences</span><span id="storage-prefs" data-i18n="app.privacy.prefsValue">Theme, language, defaults</span></li>
+            </ul>
+          </div>
+          <div class="danger-zone">
+            <div>
+              <p class="field__label" data-i18n="app.privacy.deleteAll">Delete everything on this device</p>
+              <p class="field__hint" data-i18n="app.privacy.deleteAllHint">Removes saved sessions, remembered keys, connections and preferences from this browser. It cannot be undone.</p>
+            </div>
+            <button class="btn btn--danger-quiet" type="button" id="btn-delete-all"><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-trash"/></svg><span data-i18n="app.privacy.deleteAllBtn">Delete everything</span></button>
+          </div>
+        </section>
+
+        <!-- Workspace access (server mode only; reveal #set-tab-access too) -->
+        <form class="settings__panel" id="set-access" role="tabpanel" aria-labelledby="set-tab-access" method="post" novalidate hidden>
+          <h3 class="settings__heading" data-i18n="app.settings.access">Workspace access</h3>
+          <p class="muted settings__intro" data-i18n="app.access.intro">This workspace uses models configured on its server. Enter the access token you were given by whoever runs it. It is not a provider API key.</p>
+          <div class="field">
+            <label class="field__label" for="access-token" data-i18n="app.access.token">Access token</label>
+            <div class="input-group">
+              <input class="input input--mono" id="access-token" type="password" autocomplete="off" spellcheck="false" aria-describedby="access-token-hint">
+              <button class="icon-btn input-group__action" type="button" data-toggle-password="access-token" aria-label="Show token" aria-pressed="false" data-i18n-attr="aria-label:app.access.show"><svg class="icon icon--when-hidden" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-eye"/></svg><svg class="icon icon--when-shown" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-eye-off"/></svg></button>
+            </div>
+            <p class="field__hint" id="access-token-hint" data-i18n="app.access.hint">Kept for this tab only.</p>
+          </div>
+          <div class="test-result" id="access-test-result" data-state="idle" aria-live="polite">
+            <button class="btn btn--sm btn--primary" id="btn-access-save" type="button"><span class="spinner" aria-hidden="true"></span><span data-i18n="app.access.save">Save and check</span></button>
+            <p class="test-result__msg" id="access-test-message"></p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ History drawer (data-state: off | empty | list) ============ -->
+  <dialog class="drawer" id="history-drawer" aria-labelledby="history-title" data-state="off">
+    <header class="dialog__header drawer__header">
+      <h2 class="dialog__title" id="history-title" data-i18n="app.history.title">Session history</h2>
+      <button class="icon-btn" type="button" data-close-dialog aria-label="Close" data-i18n-attr="aria-label:common.close"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+    </header>
+    <div class="drawer__search" data-show-when-history="list">
+      <div class="input-group input-group--search">
+        <svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-search"/></svg>
+        <input class="input" id="history-search" type="search" placeholder="Search sessions" aria-label="Search sessions" data-i18n-attr="placeholder:app.history.search,aria-label:app.history.search" autocomplete="off">
+      </div>
+    </div>
+    <div class="drawer__body">
+      <ul class="history-list" id="history-list" data-show-when-history="list"></ul>
+      <p class="history-nomatch" id="history-nomatch" hidden data-i18n="app.history.noMatch">No sessions match that search.</p>
+      <div class="empty" data-show-when-history="off">
+        <svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-history"/></svg>
+        <p class="empty__title" data-i18n="app.history.offTitle">History is off</p>
+        <p class="empty__text" data-i18n="app.history.offText">Sessions are not saved unless you turn history on. When on, they stay in this browser and nowhere else.</p>
+        <button class="btn" type="button" data-open-settings="privacy" data-i18n="app.history.turnOn">Turn on in settings</button>
+      </div>
+      <div class="empty" data-show-when-history="empty">
+        <svg class="icon icon--lg" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-doc"/></svg>
+        <p class="empty__title" data-i18n="app.history.emptyTitle">No saved sessions</p>
+        <p class="empty__text" data-i18n="app.history.emptyText">Sessions you draft from now on will appear here.</p>
+      </div>
+    </div>
+    <footer class="drawer__footer" data-show-when-history="list empty">
+      <p class="field__hint" id="history-retention">Stored only on this device. Deleted automatically after 7 days.</p>
+      <button class="btn btn--sm btn--danger-quiet" type="button" id="btn-history-delete-all" data-show-when-history="list" data-i18n="app.history.deleteAll">Delete all</button>
+    </footer>
+  </dialog>
+
+  <!-- ============ Keyboard shortcuts ============ -->
+  <dialog class="dialog" id="shortcuts-dialog" aria-labelledby="shortcuts-title">
+    <header class="dialog__header">
+      <h2 class="dialog__title" id="shortcuts-title" data-i18n="app.help.shortcuts">Keyboard shortcuts</h2>
+      <button class="icon-btn" type="button" data-close-dialog aria-label="Close" data-i18n-attr="aria-label:common.close"><svg class="icon" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+    </header>
+    <div class="dialog__body">
+      <dl class="shortcuts" id="shortcuts-list">
+        <div><dt data-i18n="app.keys.record">Start or stop recording</dt><dd><kbd>R</kbd></dd></div>
+        <div><dt data-i18n="app.keys.pause">Pause or resume recording</dt><dd><kbd>Space</kbd></dd></div>
+        <div><dt data-i18n="app.keys.generate">Write the draft</dt><dd><kbd>Ctrl</kbd><kbd>Enter</kbd></dd></div>
+        <div><dt data-i18n="app.keys.find">Find in transcript</dt><dd><kbd>Ctrl</kbd><kbd>F</kbd></dd></div>
+        <div><dt data-i18n="app.keys.copy">Copy the draft</dt><dd><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>C</kbd></dd></div>
+        <div><dt data-i18n="app.keys.history">Session history</dt><dd><kbd>H</kbd></dd></div>
+        <div><dt data-i18n="app.keys.settings">Settings</dt><dd><kbd>,</kbd></dd></div>
+        <div><dt data-i18n="app.keys.pane">Switch between consultation and draft</dt><dd><kbd>Alt</kbd><kbd>1</kbd> <kbd>Alt</kbd><kbd>2</kbd></dd></div>
+        <div><dt data-i18n="app.keys.help">Show this list</dt><dd><kbd>?</kbd></dd></div>
+        <div><dt data-i18n="app.keys.close">Close a dialog or menu</dt><dd><kbd>Esc</kbd></dd></div>
+      </dl>
+      <p class="field__hint" data-i18n="app.keys.mac">On a Mac, use Cmd in place of Ctrl. Single-letter shortcuts do not fire while you are typing.</p>
+    </div>
+  </dialog>
+
+  <!-- ============ Confirm (driven by ui.confirm()) ============ -->
+  <dialog class="dialog dialog--confirm" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message" data-tone="default">
+    <form method="dialog" class="confirm-form">
+      <div class="dialog__header">
+        <h2 class="dialog__title" id="confirm-title">Are you sure?</h2>
+      </div>
+      <div class="dialog__body">
+        <p id="confirm-message" class="muted"></p>
+      </div>
+      <footer class="dialog__footer">
+        <button class="btn" value="cancel" id="confirm-cancel" data-i18n="common.cancel">Cancel</button>
+        <button class="btn btn--primary" value="ok" id="confirm-ok">Confirm</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ============ Templates for dynamic rows ============ -->
+  <template id="tpl-turn">
+    <li class="turn" data-turn-id="" data-speaker="doctor">
+      <span class="turn__num" aria-hidden="true"></span>
+      <div class="turn__meta">
+        <select class="turn__speaker" aria-label="Speaker" data-i18n-attr="aria-label:app.transcript.speaker">
+          <option value="doctor" data-i18n="common.doctor">Doctor</option>
+          <option value="patient" data-i18n="common.patient">Patient</option>
+          <option value="other" data-i18n="common.other">Other</option>
+          <option value="unknown" data-i18n="common.unlabelled">Unlabelled</option>
+        </select>
+        <span class="turn__time" hidden></span>
+      </div>
+      <p class="turn__text" contenteditable="plaintext-only" spellcheck="true" role="textbox" aria-multiline="true"></p>
+    </li>
+  </template>
+
+  <template id="tpl-statement">
+    <li class="statement" data-statement-id="" data-grounding="grounded" data-evidence="">
+      <p class="statement__text" contenteditable="plaintext-only" spellcheck="true" role="textbox" aria-multiline="true"></p>
+      <span class="statement__marks">
+        <button class="ev-chip" type="button" data-evidence="" data-grounded-only aria-label="Show source in transcript" data-i18n-attr="aria-label:note.showSource" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-link"/></svg><span class="ev-chip__refs"></span></button>
+        <span class="ev-chip ev-chip--unverified" tabindex="0" role="note" data-unverified-only aria-label="Unverified: no supporting line in the transcript" data-i18n-attr="aria-label:note.unverifiedLong" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-unverified"/></svg><span data-i18n="note.unverified">Unverified</span></span>
+        <button class="icon-btn icon-btn--sm statement__remove" type="button" data-action="remove-statement" aria-label="Remove this line" data-i18n-attr="aria-label:app.section.removeLine" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-close"/></svg></button>
+      </span>
+    </li>
+  </template>
+
+  <template id="tpl-flag">
+    <li class="flag" data-flag-id="" data-target-statement="" data-resolved="false">
+      <label class="check flag__check">
+        <input type="checkbox" class="flag__resolve" aria-label="Mark as reviewed" data-i18n-attr="aria-label:app.flags.resolve">
+        <span class="flag__text"></span>
+      </label>
+      <button class="link-btn flag__go" type="button" data-action="go-to-statement" data-i18n="app.flags.show">Show</button>
+    </li>
+  </template>
+
+  <template id="tpl-connection">
+    <li class="conn-item" data-connection-id="" data-status="untested">
+      <span class="conn-item__dot" aria-hidden="true"></span>
+      <div class="conn-item__meta">
+        <p class="conn-item__name"></p>
+        <p class="conn-item__detail"></p>
+      </div>
+      <span class="badge conn-item__status"></span>
+      <button class="btn btn--sm" type="button" data-action="edit-connection" data-i18n="app.conn.edit">Edit</button>
+      <button class="icon-btn icon-btn--sm" type="button" data-action="remove-connection" aria-label="Remove connection" data-i18n-attr="aria-label:app.conn.removeLabel" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-trash"/></svg></button>
+    </li>
+  </template>
+
+  <!-- Optional: rebuild a .preset-grid from the engine's PROVIDERS list. Set input name/value, label text, and the <small> tag (or remove it). -->
+  <template id="tpl-preset">
+    <label class="preset"><input type="radio" name="" value=""><span class="preset__label"></span><small class="preset__tag"></small></label>
+  </template>
+
+  <template id="tpl-model-option">
+    <li class="combo__option" role="option" aria-selected="false" data-model-id="">
+      <span class="combo__option-id"></span>
+      <span class="combo__option-meta"></span>
+    </li>
+  </template>
+
+  <template id="tpl-history-item">
+    <li class="history-item" data-session-id="">
+      <button class="history-item__open" type="button" data-action="open-session">
+        <span class="history-item__title"></span>
+        <span class="history-item__meta"></span>
+      </button>
+      <button class="icon-btn icon-btn--sm" type="button" data-action="delete-session" aria-label="Delete session" data-i18n-attr="aria-label:app.history.delete" data-tooltip=""><svg class="icon icon--sm" aria-hidden="true"><use href="/assets/icons/sprite.svg#i-trash"/></svg></button>
+    </li>
+  </template>
+
+  <!-- ============ Global UI singletons ============ -->
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-relevant="additions"></div>
+  <div class="tooltip" id="tooltip" role="tooltip" aria-hidden="true"></div>
+  <p class="sr-only" id="sr-status" role="status" aria-live="polite"></p>
+  <p class="sr-only" id="sr-alert" role="alert" aria-live="assertive"></p>
+</body>
+</html>
